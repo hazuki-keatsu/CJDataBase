@@ -1,0 +1,14 @@
+{
+  "packageInformation": {
+    "CJDataBase": {
+      "rootPackageName": "CJDataBase",
+      "fileNameHash": "6419286871500566408",
+      "timeStamp": 1746972444,
+      "buildFlag": true,
+      "exeName": "main",
+      "hasSubPkgs": false
+    }
+  },
+  "jsonHash": "77761779303626008",
+  "rootPackageName": "CJDataBase"
+}

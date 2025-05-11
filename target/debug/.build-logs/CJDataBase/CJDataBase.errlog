@@ -1,0 +1,9 @@
+[33mwarning[0m: unused variable:'command_input'
+  [36m==>[0m D:\jobs\projects_important\CJDataBase\src\main.cj:18:9:
+   [36m| [0m
+[36m18[0m [36m| [0m    let command_input = Console.stdIn.readln().getOrThrow()[0m
+   [36m| [0m        [33m^^^^^^^^^^^^^ unused variable[0m
+   [36m| [0m
+   [36m#[0m [0mnote[0m: this warning can be suppressed by setting the compiler option `-Woff unused`
+
+1 warning generated, 1 warning printed.
