@@ -1,9 +1,33 @@
-[33mwarning[0m: unused variable:'command_input'
-  [36m==>[0m D:\jobs\projects_important\CJDataBase\src\main.cj:18:9:
+[33mwarning[0m: unused variable:'database_path'
+ [36m==>[0m D:\jobs\projects_important\CJDataBase\src\database.cj:8:17:
+  [36m| [0m
+[36m8[0m [36m| [0m    public init(database_path: String) {[0m
+  [36m| [0m                [33m^^^^^^^^^^^^^ unused variable[0m
+  [36m| [0m
+  [36m#[0m [0mnote[0m: this warning can be suppressed by setting the compiler option `-Woff unused`
+
+[33mwarning[0m: unused function:'export'
+  [36m==>[0m D:\jobs\projects_important\CJDataBase\src\utils.cj:34:1:
    [36m| [0m
-[36m18[0m [36m| [0m    let command_input = Console.stdIn.readln().getOrThrow()[0m
-   [36m| [0m        [33m^^^^^^^^^^^^^ unused variable[0m
+[36m34[0m [36m| [0m  func export()[0m
+   [36m| [0m [33m_[0m[33m^[0m
+[36m35[0m [36m| [0m[33m|[0m {[0m
+   [36m| [0m[33m|[0m ...[0m
+[36m37[0m [36m| [0m[33m|[0m }[0m
+   [36m| [0m[33m|[0m[33m_[0m[33m^ unused function[0m
    [36m| [0m
    [36m#[0m [0mnote[0m: this warning can be suppressed by setting the compiler option `-Woff unused`
 
-1 warning generated, 1 warning printed.
+[33mwarning[0m: unused function:'register'
+  [36m==>[0m D:\jobs\projects_important\CJDataBase\src\utils.cj:40:1:
+   [36m| [0m
+[36m40[0m [36m| [0m  func register()[0m
+   [36m| [0m [33m_[0m[33m^[0m
+[36m41[0m [36m| [0m[33m|[0m {[0m
+   [36m| [0m[33m|[0m ...[0m
+[36m43[0m [36m| [0m[33m|[0m }[0m
+   [36m| [0m[33m|[0m[33m_[0m[33m^ unused function[0m
+   [36m| [0m
+   [36m#[0m [0mnote[0m: this warning can be suppressed by setting the compiler option `-Woff unused`
+
+3 warnings generated, 3 warnings printed.
