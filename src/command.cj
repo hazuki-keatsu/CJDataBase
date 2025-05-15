@@ -2,8 +2,6 @@ package CJDataBase
 
 import std.collection.*
 
-// insert delete select info
-
 // 命令系统
 enum COMMAND { 
     | CREATE_DATABASE
@@ -41,10 +39,33 @@ enum COMMAND {
     }
 }
 
+// 条件系统
+enum CONDITION {
+    | EQU
+    | LOWER
+    | HIGHER
+    | ERRC
+
+    // 枚举转字符串
+    func toString(): String {
+        match (this) {
+            case EQU => return "="
+            case LOWER => return "<"
+            case HIGHER => return ">"
+            case ERRC => return "errc"
+        }
+    }
+
+    // 比较运算
+    operator func ==(right: COMMAND): Bool {
+        return this.toString() == right.toString()
+    }
+}
+
 func command_recognition(input: String) : (COMMAND, Map<String, String>)
 {
     // 命令识别
-    let parse: Array<String> = input.split(" ", -1, removeEmpty: true)
+    let parse: Array<String> = input.replace("(", " ").replace(")", " ").replace(",", " ").split(" ", removeEmpty: true)
 
     let params: Map<String, String> = HashMap<String, String>()
 
@@ -54,10 +75,8 @@ func command_recognition(input: String) : (COMMAND, Map<String, String>)
 
     let cmd = parse[0].toString().toAsciiLower()
 
-    
-
     if (cmd == "quit" || cmd == "exit")
-    {
+    {  
         return (QUIT, params)
     }
 
@@ -90,9 +109,8 @@ func command_recognition(input: String) : (COMMAND, Map<String, String>)
                     var types = ""
                     for (i in 3..parse.size:2) 
                     {
-                        
-                        types += clearMark(parse[i]) + " "
-                        columns += clearMark(parse[i+1]) + " "
+                        types += parse[i] + " "
+                        columns += parse[i+1] + " "
                     }
                     params["types"] = types
                     params["columns"] = columns
@@ -133,7 +151,7 @@ func command_recognition(input: String) : (COMMAND, Map<String, String>)
         }
     }
 
-    if (cmd == "info" && parse.size == 3 && parse[1].toAsciiUpper() == "table") 
+    if (cmd == "info" && parse.size == 3 && parse[1].toAsciiLower() == "table") 
     {
         params["table_name"] = parse[2]
         return (INFO_TABLE, params)
@@ -143,86 +161,24 @@ func command_recognition(input: String) : (COMMAND, Map<String, String>)
     {
         params["table_name"] = parse[2]
         
-        // 检查是否有 VALUES 关键字
-        var valuesIndex = -1
+        var keys = ""
+        var values = ""
+        
+        // 从第4个参数开始解析键值对 (name=john age=20)
         for (i in 3..parse.size) {
-            if (parse[i].toAsciiLower() == "values") {
-                valuesIndex = i
-                break
+            let parts = parse[i].split("=", 2)
+            if (parts.size >= 2) {
+                if (parts[1].endsWith(","))
+                {
+                    parts[1].replace(",", "")
+                }
+                keys += parts[0] + " "
+                values += parts[1] + " "
             }
         }
         
-        // 没有 VALUES 关键字时，使用传统的键值对格式
-        if (valuesIndex == -1) {
-            var keys = ""
-            var values = ""
-            
-            // 从第4个参数开始解析键值对 (name=john age=20)
-            for (i in 3..parse.size) {
-                let parts = parse[i].split("=", 2)
-                if (parts.size >= 2) {
-                    keys += clearMark(parts[0]) + ","
-                    values += clearMark(parts[1]) + ","
-                }
-            }
-            
-            // 移除最后的逗号
-            if (keys.endsWith(",")) {
-                keys = clearMark(keys)
-            }
-            if (values.endsWith(",")) {
-                values = clearMark(values)
-            }
-            
-            params["keys"] = keys
-            params["values"] = values
-        } 
-        // 使用标准 SQL 格式: INSERT INTO table (col1, col2) VALUES (val1, val2)
-        else {
-            // 识别列名列表
-            let note = "(),.;"
-
-            if (parse[3].startsWith("(") && valuesIndex > 3) {
-                var columns = ""
-                for (i in 3..valuesIndex) {
-                    columns += parse[i] + " "
-                }
-                // 清理括号和逗号
-                
-                for (i in 1..columns.size)
-                {
-                    for (n in note)
-                    {
-                        if (columns[i] == n)
-                        {
-                            columns.replace(n.toString(), "")
-                        }
-                    }
-                }
-                params["columns"] = columns
-            }
-            
-            // 识别值列表
-            if (valuesIndex + 1 < parse.size) {
-                var valuesList = ""
-                for (i in (valuesIndex + 1)..parse.size) {
-                    valuesList += parse[i] + " "
-                }
-                // 清理括号和逗号
-                for (i in 1..valuesList.size)
-                {
-                    for (n in note)
-                    {
-                        if (valuesList[i] == n)
-                        {
-                            valuesList.replace(n.toString(), "")
-                        }
-                    }
-                }
-                
-                params["values"] = valuesList
-            }
-        }
+        params["keys"] = keys
+        params["values"] = values
         
         return (INSERT_INTO, params)
     }
@@ -279,7 +235,7 @@ func command_recognition(input: String) : (COMMAND, Map<String, String>)
         }
         // 处理列名中的逗号
         columnsStr = columnsStr.replace(",", " ").trimAscii()
-        params["columns"] = clearMark(columnsStr)
+        params["columns"] = columnsStr
         
         // 表名
         params["table_name"] = parse[fromIndex + 1]
@@ -326,7 +282,7 @@ func command_recognition(input: String) : (COMMAND, Map<String, String>)
         // 处理 ORDER BY 子句
         if (orderByIndex != -1 && orderByIndex + 2 < parse.size) 
         {
-            params["order_column"] = clearMark(parse[orderByIndex + 2])
+            params["order_column"] = parse[orderByIndex + 2]
             
             // 检查是否有 ASC/DESC
             if (orderByIndex + 3 < parse.size) 
@@ -343,4 +299,28 @@ func command_recognition(input: String) : (COMMAND, Map<String, String>)
     }
 
     return (ERR, params)
+}
+
+// 条件解析
+func condition_recognition(input: String)
+{
+    if (input.contains("="))
+    {
+        let params = input.split("=")
+        return (EQU, params)
+    }
+    else if (input.contains("<"))
+    {
+        let params = input.split("<")
+        return (LOWER, params)
+    }
+    else if (input.contains(">"))
+    {
+        let params = input.split(">")
+        return (HIGHER, params)
+    }
+    else
+    {
+        return (ERRC, Array<String>())
+    }
 }
