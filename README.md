@@ -6,6 +6,12 @@ English | [中文](./docs/README_zh.md)
 
 This is a database demo composed with Cangjie, the brand-new language.
 
+## TODO
+
+- [x] `CREATE_DATABASE, DROP_DATABASE, USE, ERR, QUIT`
+- [ ] `CREATE_TABLE, DROP_TABLE, INFO_TABLE, INSERT_INTO, DELETE_FROM, SELECT`
+- [ ] `Array\<T>` to `csv` Func
+
 ## Structure of Database
 
 ```structure

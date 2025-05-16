@@ -4,12 +4,13 @@ import std.console.*
 import std.convert.*
 
 // 版本标记
-let VERSION = "0.1-alpha"
+let VERSION = "0.2-alpha"
 
 main(): Int64 {
     init_program()
 
     var current_database: String = ""
+    var db: Database
 
     while (true) 
     {
@@ -39,14 +40,24 @@ main(): Int64 {
             // 创建数据库 
             if (command[0] == CREATE_DATABASE)
             {
-                let db = Database(command[1]["database_name"])
-                db.create_database()
+                create_database(command[1]["database_name"])
             }
-            // 创建数据库 
-            if (command[0] == USE)
+            // 进入数据库 
+            else if (command[0] == USE)
             {
-                let db = Database(command[1]["database_name"])
-                current_database = command[1]["database_name"]
+                if (current_database != "")
+                {
+                    println("You have entered a database!")
+                }
+                else
+                {
+                    current_database = command[1]["database_name"]
+                    db = Database(command[1]["database_name"])
+                }   
+            }
+            else if (command[0] == DROP_DATABASE)
+            {
+                drop_database(command[1]["database_name"])
             }
         }
     }

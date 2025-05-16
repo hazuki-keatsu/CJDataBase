@@ -19,17 +19,17 @@ enum COMMAND {
     // 枚举转字符串
     func toString(): String {
         match (this) {
-            case CREATE_DATABASE => return "CREATE_DATABASE"
-            case DROP_DATABASE => return "DROP_DATABASE"
-            case USE => return "USE"
+            case CREATE_DATABASE => return "CREATE_DATABASE" //f
+            case DROP_DATABASE => return "DROP_DATABASE" //f
+            case USE => return "USE" //f
             case CREATE_TABLE => return "CREATE_TABLE"
             case DROP_TABLE => return "DROP_TABLE"
             case INFO_TABLE => return "INFO_TABLE"
             case INSERT_INTO => return "INSERT_INTO"
             case DELETE_FROM => return "DELETE_FROM"
             case SELECT => return "SELECT"
-            case ERR => return "ERR"
-            case QUIT => return "QUIT"
+            case ERR => return "ERR" //f
+            case QUIT => return "QUIT" //f
         }
     }
 
