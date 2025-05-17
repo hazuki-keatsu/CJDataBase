@@ -1,37 +1,10 @@
 package CJDataBase
 
-import std.console.*
-import std.collection.*
-import std.fs.*
+import std.collection.HashMap
+import encoding.json.*
+import std.collection.ArrayList
 
-// 初始化工作
-func init_program ()
-{
-    println("CJSQL version ${VERSION}")
-    println("Enter \".help\" for instructions")
-    println("Enter SQL statements terminated with a \";\"\n")
-}
-
-// 交互式命令环境
-func interactive_commandline(current_database: String)
-{
-    var command_input: String
-    do {
-        if (current_database == "")
-        {
-            print("CJSQL> ")
-        }
-        else
-        {
-            print("CJSQL - ${current_database}> ")
-        }
-        
-        command_input = Console.stdIn.readln().getOrThrow()
-    } while (command_input.isEmpty())
-
-    return command_recognition(command_input)
-}
-
+// Json解析器
 func jsonParse(input: String, key:String)
 {
     let k_v = input.trimLeft("{").trimRight("}").split(",")
@@ -44,6 +17,10 @@ func jsonParse(input: String, key:String)
             {
                 return v.trimLeft("[").trimRight("]")
             }
+            else if (v.contains("{") && v.contains("}"))
+            {
+                return v.trimLeft("{").trimRight("}")
+            }
             else
             {
                 return v
@@ -52,4 +29,28 @@ func jsonParse(input: String, key:String)
         }
     }
     return ""
+}
+
+// 表元数据文件构建函数
+func table_meta_file_builder(table_name: String, column_names: ArrayList<String>, column_types: ArrayList<String>) : HashMap<String, JsonValue>
+{
+    // 初始化表元数据
+    let map = HashMap<String, JsonValue>()
+    map["TableName"] = JsonValue.fromStr("\"" + table_name + "\"")
+    map["RowCount"] = JsonInt(0)
+    map["ColumnCount"] = JsonInt(column_names.size)
+    
+    // 创建列信息
+    let columnInfoMap = JsonObject()
+    for (i in 0..column_names.size) {
+        // 为每个列创建类型信息 [索引, 类型]
+        let columnInfo = JsonArray()
+        columnInfo.add(JsonInt(i))
+        columnInfo.add(JsonValue.fromStr("\"" + column_types[i] + "\""))
+        
+        columnInfoMap.put(column_names[i], columnInfo)
+    }
+    
+    map["TableColumnInfo"] = columnInfoMap
+    return map
 }
