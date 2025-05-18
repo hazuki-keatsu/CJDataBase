@@ -70,7 +70,13 @@ class InteractiveCommandline
                     else
                     {
                         db = Database(current_database)
-                        db.create_table(command[1]["table_name"], ArrayList<String>(command[1]["columns"].split(" ", removeEmpty: true)), ArrayList<String>(command[1]["types"].split(" ", removeEmpty: true)))
+                        try {
+                            db.create_table(command[1]["table_name"], ArrayList<String>(command[1]["columns"].split(" ", removeEmpty: true)), ArrayList<String>(command[1]["types"].split(" ", removeEmpty: true)))
+                        }
+                        catch (e: NoneValueException) {
+                            println("You seem to input less args.")
+                            continue
+                        }
                     }
                 case DROP_TABLE =>  
                     if (current_database == "")
@@ -90,7 +96,10 @@ class InteractiveCommandline
                     else
                     {
                         db = Database(current_database)
+                        
                         db.info_table(command[1]["table_name"])
+                        
+                        
                     }
                 case INSERT_INTO =>
                     println("un")

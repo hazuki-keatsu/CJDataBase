@@ -7,6 +7,7 @@ import std.collection.HashMap
 import std.io.*
 import std.convert.*
 import std.unicode.*
+import serialization.serialization.*
 
 class Database {
     private let path: Path
@@ -28,10 +29,12 @@ class Database {
             
             println(jsonString)
 
-            if (jsonParse(jsonString, "MagicName") == "\"CJDB\"")
+            let r = DatabaseMeta.deserialize(DataModel.fromJson(JsonValue.fromStr(jsonString)))
+
+            if (r.MagicName == "CJDB")
             {
-                this.table_count = UInt64.parse(jsonParse(jsonString, "TableCount"))
-                this.table_name = ArrayList<String>(jsonParse(jsonString, "TableName").replace("\"", "").split(","))
+                this.table_count = UInt64.parse(r.TableCount.toString())
+                this.table_name = ArrayList<String>(r.TableName)
                 database_meta.close()
             }
             else
@@ -68,14 +71,9 @@ class Database {
         // 创建数据库注册文件
         let database_meta_file = File(path.join("database.meta"), CreateOrTruncate(true))
 
-        let map = HashMap<String, JsonValue>()
-        map["MagicName"] = JsonValue.fromStr("\"CJDB\"")
-        map["DatabaseName"] = JsonValue.fromStr("\"" + database_name + "\"")
-        map["TableCount"] = JsonInt(0)
-        map["TableName"] = JsonArray()
+        let d = DatabaseMeta("CJDB", "\"" + database_name + "\"", 0, Array<String>())
 
-        let json = JsonObject(map)
-        database_meta_file.write(json.toString().toArray())
+        database_meta_file.write(d.serialize().toJson().toString().toArray())
         return true
     }
 
@@ -119,10 +117,26 @@ class Database {
             return false
         }
         
+        let key_value = ArrayList<ArrayList<String>>(ArrayList<String>())
+
+        for (i in 0..column_names.size)
+        {
+            key_value[i] = ArrayList<String>([column_names[i], column_types[i]])
+        }
+
+        let key_value_no_class = Array<Array<String>>()
+
+        for (i in 0..key_value.size)
+        {
+            key_value_no_class[i] = key_value[i].toArray()
+        }
+
         // 创建表元数据文件
         let table_meta_file = File(table_path.join("table.meta"), CreateOrTruncate(true))
-        let json = JsonObject(table_meta_file_builder(table_name, column_names, column_types))
-        table_meta_file.write(json.toString().toArray())
+        // 使用meta.cj中的TableMeta类
+        let tm = TableMeta(table_name, 0, UInt64.parse(column_names.size.toString()), key_value_no_class)
+        table_meta_file.write(tm.serialize().toJson().toString().toArray())
+        table_meta_file.close()
         
         // 创建空的数据文件
         let data_file = File(table_path.join("page.data"), CreateOrTruncate(true))
@@ -172,20 +186,15 @@ class Database {
         // 更新数据库元数据文件
         let database_meta_file = File(this.path.join("database.meta"), CreateOrTruncate(true))
         
-        let dbMap = HashMap<String, JsonValue>()
-        dbMap["MagicName"] = JsonValue.fromStr("\"CJDB\"")
-        dbMap["DatabaseName"] = JsonValue.fromStr("\"" + this.database_name + "\"")
-        dbMap["TableCount"] = JsonInt(Int64.parse(this.table_count.toString()))
-        
         // 构建表名数组
-        let tableNameArray = JsonArray()
-        for (name in this.table_name) {
-            tableNameArray.add(JsonValue.fromStr("\"" + name + "\""))
+        let tableNameArray = ArrayList<String>()
+        for (i in 0..this.table_name.size) {
+            tableNameArray.append(this.table_name[i])
         }
-        dbMap["TableName"] = tableNameArray
         
-        let dbJson = JsonObject(dbMap)
-        database_meta_file.write(dbJson.toString().toArray())
+        // 使用meta.cj中的DatabaseMeta类
+        let dbMeta = DatabaseMeta("CJDB", "\"" + this.database_name + "\"", this.table_count, tableNameArray.toArray())
+        database_meta_file.write(dbMeta.serialize().toJson().toString().toArray())
         database_meta_file.close()
         
         println("Table ${table_name} created successfully.")
@@ -229,20 +238,15 @@ class Database {
             // 更新数据库元数据文件
             let database_meta_file = File(this.path.join("database.meta"), CreateOrTruncate(true))
             
-            let dbMap = HashMap<String, JsonValue>()
-            dbMap["MagicName"] = JsonValue.fromStr("\"CJDB\"")
-            dbMap["DatabaseName"] = JsonValue.fromStr("\"" + this.database_name + "\"")
-            dbMap["TableCount"] = JsonInt(Int64.parse(this.table_count.toString()))
-            
-            // 重建表名数组
-            let tableNameArray = JsonArray()
-            for (name in this.table_name) {
-                tableNameArray.add(JsonValue.fromStr("\"" + name + "\""))
+            // 构建表名数组
+            let tableNameArray = ArrayList<String>()
+            for (i in 0..this.table_name.size) {
+                tableNameArray.append(this.table_name[i])
             }
-            dbMap["TableName"] = tableNameArray
             
-            let dbJson = JsonObject(dbMap)
-            database_meta_file.write(dbJson.toString().toArray())
+            // 使用meta.cj中的DatabaseMeta类
+            let dbMeta = DatabaseMeta("CJDB", "\"" + this.database_name + "\"", this.table_count, tableNameArray.toArray())
+            database_meta_file.write(dbMeta.serialize().toJson().toString().toArray())
             database_meta_file.close()
             
             println("Table ${table_name} dropped successfully.")
@@ -266,10 +270,6 @@ class Database {
         println(cn)
         let ct = tb.getColumnTypes()
         println(ct)
-        for (i in 0..Int64.parse(tb.getColumnCount().toString()))
-        {
-            println("${cn[i]}\t${ct[i]}")
-        }
     }
 }
 
@@ -306,26 +306,37 @@ class Table
         
         try 
         {
-            let table_meta = File(meta_file_path, Open(true, false))
-            let jsonString = String.fromUtf8(table_meta.readToEnd())
+            let table_meta_file = File(meta_file_path, Open(true, false))
+            let jsonString = String.fromUtf8(table_meta_file.readToEnd())
             
-            // 解析表元数据
-            if (jsonParse(jsonString, "TableName") == "\"" + this.table_name + "\"") 
+            // 使用TableMeta类解析表元数据
+            let jv = JsonValue.fromStr(jsonString)
+            let dm = DataModel.fromJson(jv)
+            let tableMeta = TableMeta.deserialize(dm)
+            
+            if (tableMeta.TableName == "\"" + this.table_name + "\"") 
             {
-                this.row_count = UInt64.parse(jsonParse(jsonString, "RowCount"))
-                this.column_count = UInt64.parse(jsonParse(jsonString, "ColumnCount"))
+                this.row_count = tableMeta.RowCount
+                this.column_count = tableMeta.ColumnCount
                 
-                // 解析表的列信息
-                let columnInfoString = jsonParse(jsonString, "TableColumnInfo")
-                parseColumnInfo(columnInfoString)
+                // 从TableColumnInfo中提取列名和类型
+                let columnInfo = tableMeta.TableColumnInfo
+                for (i in 0..columnInfo.size) 
+                {
+                    if (columnInfo[i].size >= 2) 
+                    {
+                        this.column_names.append(columnInfo[i][0])
+                        this.column_types.append(columnInfo[i][1])
+                    }
+                }
                 
-                table_meta.close()
+                table_meta_file.close()
             } 
             else 
             {
                 this.row_count = 0
                 this.column_count = 0
-                table_meta.close()
+                table_meta_file.close()
                 throw Exception("Table Metadata is invalid.")
             }
         } 
@@ -333,74 +344,11 @@ class Table
         {
             throw Exception("Failed to read table metadata: ${e}")
         }
-    }
-    
-    // 解析列信息JSON
-    private func parseColumnInfo(columnInfoJson: String) 
-    {
-        // 解析列信息JSON字符串
-        // 表的列信息格式: {"column1":[0,"type1"],"column2":[1,"type2"],...}
-        
-        // 提取列信息中的键和值
-        // 这里简化处理，实际可能需要更复杂的JSON解析
-        var content = columnInfoJson.trim()
-        
-        if (content.startsWith("{") && content.endsWith("}")) 
+        catch (e: Exception)
         {
-            // 移除花括号
-            let sb = StringBuilder()
-            for (idx in 1..content.size - 1)
-            {
-                sb.append(content[idx])
-            }
-            content = sb.toString()
-            
-            // 分割每个列定义
-            let columnParts = content.split(",")
-            
-            for (part in columnParts) 
-            {
-                if (part.contains(":")) 
-                {
-                    let keyValue = part.split(":", 2)
-                    if (keyValue.size == 2) 
-                    {
-                        // 提取列名，移除引号
-                        let columnName = keyValue[0].trim().replace("\"", "")
-                        
-                        // 提取列类型，格式为 [索引,"类型"]
-                        let typeInfo = keyValue[1].trim()
-                        if (typeInfo.startsWith("[") && typeInfo.endsWith("]")) 
-                        {
-                            let sb = StringBuilder()
-                            for (idx in 1..typeInfo.size - 1)
-                            {
-                                sb.append(typeInfo[idx])
-                            }
-                            let typeInfoContent = sb.toString()
-
-                            let typeInfoParts = typeInfoContent.split(",", 2)
-                            
-                            if (typeInfoParts.size >= 2) 
-                            {
-                                let columnType = typeInfoParts[1].trim().replace("\"", "")
-                                
-                                // 添加到列列表
-                                this.column_names.append(columnName)
-                                this.column_types.append(columnType)
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // 验证列数是否与元数据一致
-            if (this.column_names.size != Int64.parse(this.column_count.toString())) 
-            {
-                println("Warning: ColumnCount is not the same with Metadata.")
-            }
+            throw Exception("Failed to parse table metadata: ${e}")
         }
-    }
+    }   
     
     // 获取表行数
     public func getRowCount() : UInt64 
