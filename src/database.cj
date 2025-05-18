@@ -132,26 +132,26 @@ class Database {
         let data_file = File(table_path.join("page.data"), CreateOrTruncate(true))
         data_file.close()
         
-        // 创建索引目录
-        let index_path = table_path.join("index")
-        try {
-            Directory.create(index_path)
-        }
-        catch (e: FSException) {
-            println("Failed to create index directory for table ${table_name}.")
-            return false
-        }
+        // // 创建索引目录
+        // let index_path = table_path.join("index")
+        // try {
+        //     Directory.create(index_path)
+        // }
+        // catch (e: FSException) {
+        //     println("Failed to create index directory for table ${table_name}.")
+        //     return false
+        // }
         
-        // 为每列创建空索引文件
-        for (i in 0..column_names.size) {
-            let index_file_name = "column_" + i.toString() + ".index"
-            let index_file = File(index_path.join(index_file_name), CreateOrTruncate(true))
+        // // 为每列创建空索引文件
+        // for (i in 0..column_names.size) {
+        //     let index_file_name = "column_" + i.toString() + ".index"
+        //     let index_file = File(index_path.join(index_file_name), CreateOrTruncate(true))
             
-            let id = IndexData(UInt64(i), Array<Data_file>())
-            let jsonString = id.serialize().toJson().toString()
-            index_file.write(jsonString.toArray())
-            index_file.close()
-        }
+        //     let id = IndexData(UInt64(i), Array<Data_file>())
+        //     let jsonString = id.serialize().toJson().toString()
+        //     index_file.write(jsonString.toArray())
+        //     index_file.close()
+        // }
         
         // 更新数据库元数据
         this.table_count++
@@ -234,13 +234,95 @@ class Database {
 
     public func info_table(table_name: String) 
     {
-        let tb = Table(Path(root_dir + this.database_name), table_name)
+        let tb = Table(table_name,  this.database_name)
         println("Path: ${tb.getPath()}")
         println("Table Name: ${tb.getTableName()}")
         println("Row Count: ${tb.getRowCount()}")
         println("Column Count: ${tb.getColumnCount()}")
         println("Column Names: ${tb.getColumnNames()}")
         println("Column Types: ${tb.getColumnTypes()}")
+    }
+
+    public func insert(table_name: String, keys: ArrayList<String>, values: ArrayList<String>) : Bool
+    {
+        let tb = Table(table_name, this.database_name)
+        tb.insert(keys, values)
+    }
+
+    public func delete(table_name: String, condition: String) : Bool
+    {
+        // 检查表是否存在
+        if (!this.table_name.contains(table_name)) {
+            throw Exception("Table ${table_name} does not exist.")
+            return false
+        }
+        
+        var parts = condition.split(" ")
+        var op = ""
+
+        if (condition.contains("<"))
+        {
+            parts = condition.split("<")
+            op = "<"
+        }
+        else if (condition.contains(">"))
+        {
+            parts = condition.split(">")
+            op = ">"
+        }
+        else if (condition.contains("="))
+        {
+            parts = condition.split("=")
+            op = "="
+        }
+
+        if (parts.size != 2) {
+            throw Exception("Invalid condition format. Should be 'column_name operator value'.")
+            return false
+        }
+        
+        let column_name = parts[0]
+        let operator_name = op
+        let value = parts[1]
+        
+        // 验证运算符
+        if (operator_name != ">" && operator_name != "<" && operator_name != "=") {
+            throw Exception("Invalid operator. Supported operators: >, <, =")
+            return false
+        }
+        
+        // 获取表对象
+        let tb = Table(table_name, this.database_name)
+        
+        // 调用表的delete_where方法
+        let deleted_count = tb.delete_where(column_name, operator_name, value)
+        return deleted_count > 0
+    }
+
+    public func delete(table_name: String)
+    {
+        let json_file = File(Path(root_dir).join(database_name).join(table_name).join("table.meta"), Open(true, true))
+        let json_str = String.fromUtf8(json_file.readToEnd().toArray())
+        let tm = TableMeta.deserialize(DataModel.fromJson(JsonValue.fromStr(json_str)))
+        tm.RowCount = 0
+
+        json_file.write(tm.serialize().toJson().toString().toArray())
+        json_file.close()
+
+        // 清空数据文件
+        let data_file_path = Path(root_dir).join(database_name).join(table_name).join("page.data")
+        if (File.exists(data_file_path)) {
+            let data_file = File(data_file_path, CreateOrTruncate(true))
+            data_file.close()
+            println("Data file for table ${table_name} has been cleared.")
+        }
+        
+        // 更新元数据文件，将行数重置为0
+        let meta_file = File(Path(root_dir).join(database_name).join(table_name).join("table.meta"), CreateOrTruncate(true))
+        meta_file.write(tm.serialize().toJson().toString().toArray())
+        meta_file.close()
+        
+        println("All records in table ${table_name} have been deleted.")
     }
 }
 
@@ -255,9 +337,9 @@ class Table
     private var column_types: ArrayList<String>
     
     // 初始化表，自动读取元数据
-    public init(database_path: Path, table_name: String) 
+    public init(table_name: String, database_name: String, database_path!: Path = Path("./")) 
     {
-        this.path = database_path.join(table_name)
+        this.path = database_path.join(database_name).join(table_name)
         this.table_name = table_name
         this.column_names = ArrayList<String>()
         this.column_types = ArrayList<String>()
@@ -321,6 +403,402 @@ class Table
         }
     }   
     
+    // 插入数据
+    public func insert(keys: ArrayList<String>, values: ArrayList<String>) : Bool
+    {
+        // 检查键和值的数量是否匹配
+        if (keys.size != values.size) {
+            throw Exception("Keys and values count mismatch.")
+            return false
+        }
+        
+        // 创建一个映射，存储列名与值的对应关系
+        let valueMap = HashMap<String, String>()
+        for (i in 0..keys.size) {
+            valueMap.put(keys[i], values[i])
+        }
+        
+        // 创建完整的行数据（按表中列的顺序）
+        let rowData = ArrayList<String>()
+        for (i in 0..this.column_names.size) {
+            let columnName = this.column_names[i]
+            let columnType = this.column_types[i]
+            
+            if (!valueMap.contains(columnName)) {
+                throw Exception("Missing value for column ${columnName}")
+                return false
+            }
+            
+            let value = valueMap.get(columnName).getOrThrow()
+            
+            // 根据列类型验证和格式化值
+            try {
+                // 如果是字符串类型（被引号包裹）
+                if (value.startsWith("\"") && value.endsWith("\"")) {
+                    // 对于字符串类型，保持原样
+                    rowData.append(value)
+                }
+                // 如果是整数类型
+                else if (columnType == "int") {
+                    // 验证是否为有效整数
+                    let _ = Int64.parse(value)
+                    rowData.append(value)
+                }
+                // 如果是浮点数类型
+                else if (columnType == "float") {
+                    // 验证是否为有效浮点数
+                    let _ = Float64.parse(value)
+                    rowData.append(value)
+                }
+                // 其他类型（默认作为字符串处理）
+                else {
+                    rowData.append("\"" + value + "\"")
+                }
+            }
+            catch (e: Exception) {
+                throw Exception("Invalid value type for column ${columnName}: ${value} should be ${columnType}")
+                return false
+            }
+        }
+        
+        try {
+            // 打开数据文件进行追加
+            let dataFile = File(this.path.join("page.data"), Append)
+            
+            var csvLine:String = ""
+            for (i in rowData)
+            {
+                csvLine += i + ","
+            }
+
+            csvLine = csvLine.trimRight(",")
+            
+            // 如果不是第一行，先添加一个换行符
+            if (this.row_count > 0) {
+                dataFile.write("\n".toArray())
+            }
+            
+            // 写入CSV行
+            dataFile.write(csvLine.toArray())
+            dataFile.close()
+            
+            // 更新行计数
+            this.row_count++
+            
+            // 更新表元数据文件
+            let tableMeta = TableMeta(this.table_name, this.row_count, this.column_count, Array<Array<String>>())
+            
+            // 添加列信息
+            for (i in 0..this.column_names.size) {
+                tableMeta.append(this.column_names[i], this.column_types[i])
+            }
+            
+            let metaFile = File(this.path.join("table.meta"), CreateOrTruncate(true))
+            metaFile.write(tableMeta.serialize().toJson().toString().toArray())
+            metaFile.close()
+            
+            println("Data inserted successfully.")
+            return true
+        }
+        catch (e: FSException) {
+            println("Failed to write data to file: ${e}")
+            return false
+        }
+        catch (e: Exception) {
+            println("Error during insert operation: ${e}")
+            return false
+        }
+    }
+
+    // 删除满足条件的记录
+    public func delete(condition_column: String, condition_value: String) : UInt64
+    {
+        // 检查条件列是否存在
+        var columnIndex = -1
+        for (i in 0..this.column_names.size) {
+            if (this.column_names[i] == condition_column) {
+                columnIndex = i
+                break
+            }
+        }
+        
+        if (columnIndex == -1) {
+            throw Exception("Column ${condition_column} does not exist in table.")
+            return 0
+        }
+        
+        try {
+            // 读取所有现有数据
+            let dataFilePath = this.path.join("page.data")
+            if (!File.exists(dataFilePath)) {
+                throw Exception("Data file not found for table ${this.table_name}.")
+                return 0
+            }
+            
+            let dataFile = File(dataFilePath, Open(true, false))
+            let fileContent = String.fromUtf8(dataFile.readToEnd())
+            dataFile.close()
+            
+            // 如果文件为空，没有记录可删除
+            if (fileContent.isEmpty()) {
+                return 0
+            }
+            
+            // 按行分割
+            let lines = fileContent.split("\n")
+            let newLines = ArrayList<String>()
+            var deletedCount: UInt64 = 0
+            
+            // 处理每一行
+            for (line in lines) {
+                // 跳过空行
+                if (line.isEmpty()) {
+                    continue
+                }
+                
+                // 解析CSV行
+                let values = line.split(",")
+                
+                // 确保索引有效
+                if (columnIndex >= values.size) {
+                    // 行格式不正确，保留该行
+                    newLines.append(line)
+                    continue
+                }
+                
+                // 检查条件
+                let cellValue = values[columnIndex]
+                
+                // 如果不匹配条件，保留此行
+                if (cellValue != condition_value) {
+                    newLines.append(line)
+                } else {
+                    deletedCount++
+                }
+            }
+            
+            // 没有找到匹配的记录
+            if (deletedCount == 0) {
+                return 0
+            }
+            
+            // 重写数据文件
+            let newDataFile = File(dataFilePath, CreateOrTruncate(true))
+            
+            // 写入保留的行
+            for (i in 0..newLines.size) {
+                if (i > 0) {
+                    newDataFile.write("\n".toArray())
+                }
+                newDataFile.write(newLines[i].toArray())
+            }
+            
+            newDataFile.close()
+            
+            // 更新行计数
+            this.row_count -= deletedCount
+            
+            // 更新表元数据
+            let tableMeta = TableMeta(this.table_name, this.row_count, this.column_count, Array<Array<String>>())
+            
+            // 添加列信息
+            for (i in 0..this.column_names.size) {
+                tableMeta.append(this.column_names[i], this.column_types[i])
+            }
+            
+            let metaFile = File(this.path.join("table.meta"), CreateOrTruncate(true))
+            metaFile.write(tableMeta.serialize().toJson().toString().toArray())
+            metaFile.close()
+            
+            println("Deleted ${deletedCount} records from table ${this.table_name}.")
+            return deletedCount
+        }
+        catch (e: FSException) {
+            println("Failed to delete records: ${e}")
+            return 0
+        }
+        catch (e: Exception) {
+            println("Error during delete operation: ${e}")
+            return 0
+        }
+    }
+
+    // 根据条件删除记录
+    public func delete_where(condition_column: String, operator_name: String, condition_value: String) : UInt64
+    {
+        // 检查条件列是否存在
+        var columnIndex = -1
+        for (i in 0..this.column_names.size) {
+            if (this.column_names[i] == condition_column) {
+                columnIndex = i
+                break
+            }
+        }
+        
+        if (columnIndex == -1) {
+            throw Exception("Column ${condition_column} does not exist in table.")
+            return 0
+        }
+        
+        // 获取列类型
+        let columnType = this.column_types[columnIndex]
+        let isNumeric = columnType == "int" || columnType == "float"
+        
+        try {
+            // 读取所有现有数据
+            let dataFilePath = this.path.join("page.data")
+            if (!File.exists(dataFilePath)) {
+                throw Exception("Data file not found for table ${this.table_name}.")
+                return 0
+            }
+            
+            let dataFile = File(dataFilePath, Open(true, false))
+            let fileContent = String.fromUtf8(dataFile.readToEnd())
+            dataFile.close()
+            
+            // 如果文件为空，没有记录可删除
+            if (fileContent.isEmpty()) {
+                return 0
+            }
+            
+            // 按行分割
+            let lines = fileContent.split("\n")
+            let newLines = ArrayList<String>()
+            var deletedCount: UInt64 = 0
+            
+            // 如果是数值比较，预先转换条件值
+            var numericConditionValue: Float64 = 0.0
+            if (isNumeric) {
+                try {
+                    numericConditionValue = Float64.parse(condition_value)
+                } 
+                catch (e: Exception) {
+                    throw Exception("Invalid numeric value for comparison: ${condition_value}")
+                    return 0
+                }
+            }
+            
+            // 处理每一行
+            for (line in lines) {
+                // 跳过空行
+                if (line.isEmpty()) {
+                    continue
+                }
+                
+                // 解析CSV行
+                let values = line.split(",")
+                
+                // 确保索引有效
+                if (columnIndex >= values.size) {
+                    // 行格式不正确，保留该行
+                    newLines.append(line)
+                    continue
+                }
+                
+                // 获取当前单元格值
+                let cellValue = values[columnIndex]
+                var keepRow = true
+                
+                // 根据类型和运算符进行比较
+                if (isNumeric) {
+                    // 数值比较
+                    try {
+                        let numericCellValue = Float64.parse(cellValue)
+                        
+                        if (operator_name == "=") {
+                            keepRow = numericCellValue != numericConditionValue
+                        } 
+                        else if (operator_name == ">") {
+                            keepRow = numericCellValue <= numericConditionValue
+                        } 
+                        else if (operator_name == "<") {
+                            keepRow = numericCellValue >= numericConditionValue
+                        }
+                    } 
+                    catch (e: Exception) {
+                        // 无效的数值，保留行
+                        keepRow = true
+                    }
+                } 
+                else {
+                    // 字符串比较
+                    // 处理字符串值（去除引号）
+                    var strCellValue = cellValue
+                    var strCondValue = condition_value
+                    
+                    if (strCellValue.startsWith("\"") && strCellValue.endsWith("\"")) {
+                        strCellValue = substring(strCellValue, 1, end_index: strCellValue.size - 1)
+                    }
+                    
+                    if (strCondValue.startsWith("\"") && strCondValue.endsWith("\"")) {
+                        strCondValue = substring(strCondValue, 1, end_index: strCondValue.size - 1)
+                    }
+                    
+                    if (operator_name == "=") {
+                        keepRow = strCellValue != strCondValue
+                    } 
+                    else if (operator_name == ">") {
+                        keepRow = strCellValue <= strCondValue
+                    } 
+                    else if (operator_name == "<") {
+                        keepRow = strCellValue >= strCondValue
+                    }
+                }
+                
+                // 如果符合保留条件，将该行添加到新行列表
+                if (keepRow) {
+                    newLines.append(line)
+                } else {
+                    deletedCount++
+                }
+            }
+            
+            // 没有找到匹配的记录
+            if (deletedCount == 0) {
+                return 0
+            }
+            
+            // 重写数据文件
+            let newDataFile = File(dataFilePath, CreateOrTruncate(true))
+            
+            // 写入保留的行
+            for (i in 0..newLines.size) {
+                if (i > 0) {
+                    newDataFile.write("\n".toArray())
+                }
+                newDataFile.write(newLines[i].toArray())
+            }
+            
+            newDataFile.close()
+            
+            // 更新行计数
+            this.row_count -= deletedCount
+            
+            // 更新表元数据
+            let tableMeta = TableMeta(this.table_name, this.row_count, this.column_count, Array<Array<String>>())
+            
+            // 添加列信息
+            for (i in 0..this.column_names.size) {
+                tableMeta.append(this.column_names[i], this.column_types[i])
+            }
+            
+            let metaFile = File(this.path.join("table.meta"), CreateOrTruncate(true))
+            metaFile.write(tableMeta.serialize().toJson().toString().toArray())
+            metaFile.close()
+            
+            println("Deleted ${deletedCount} records from table ${this.table_name} where ${condition_column} ${operator_name} ${condition_value}.")
+            return deletedCount
+        }
+        catch (e: FSException) {
+            println("Failed to delete records: ${e}")
+            return 0
+        }
+        catch (e: Exception) {
+            println("Error during delete operation: ${e}")
+            return 0
+        }
+    }
+
     // 获取表行数
     public func getRowCount() : UInt64 
     {

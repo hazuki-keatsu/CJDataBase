@@ -95,16 +95,36 @@ class InteractiveCommandline
                     }
                     else
                     {
-                        db = Database(current_database)
-                        
+                        db = Database(current_database)                      
                         db.info_table(command[1]["table_name"])
-                        
-                        
                     }
                 case INSERT_INTO =>
-                    println("un")
+                    if (current_database == "")
+                    {
+                        println("You have not used any database.")
+                    }
+                    else
+                    {
+                        db = Database(current_database)                      
+                        db.insert(command[1]["table_name"], ArrayList<String>(command[1]["keys"].split(" ")), ArrayList<String>(command[1]["values"].split(" ")))
+                    }
                 case DELETE_FROM =>
-                    println("un")
+                    if (current_database == "")
+                    {
+                        println("You have not used any database.")
+                    }
+                    else
+                    {
+                        db = Database(current_database)  
+                        if (!command[1].contains("condition"))
+                        {
+                            db.delete(command[1]["table_name"])
+                        }   
+                        else
+                        {
+                            db.delete(command[1]["table_name"], command[1]["condition"])
+                        }
+                    }
                 case SELECT =>
                     println("un")
                 case ERR =>

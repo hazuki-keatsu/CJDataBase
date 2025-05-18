@@ -39,29 +39,6 @@ enum COMMAND {
     }
 }
 
-// 条件系统
-enum CONDITION {
-    | EQU
-    | LOWER
-    | HIGHER
-    | ERRC
-
-    // 枚举转字符串
-    func toString(): String {
-        match (this) {
-            case EQU => return "="
-            case LOWER => return "<"
-            case HIGHER => return ">"
-            case ERRC => return "errc"
-        }
-    }
-
-    // 比较运算
-    operator func ==(right: COMMAND): Bool {
-        return this.toString() == right.toString()
-    }
-}
-
 func command_recognition(input: String) : (COMMAND, Map<String, String>)
 {
     // 命令识别
@@ -299,28 +276,4 @@ func command_recognition(input: String) : (COMMAND, Map<String, String>)
     }
 
     return (ERR, params)
-}
-
-// 条件解析
-func condition_recognition(input: String)
-{
-    if (input.contains("="))
-    {
-        let params = input.split("=")
-        return (EQU, params)
-    }
-    else if (input.contains("<"))
-    {
-        let params = input.split("<")
-        return (LOWER, params)
-    }
-    else if (input.contains(">"))
-    {
-        let params = input.split(">")
-        return (HIGHER, params)
-    }
-    else
-    {
-        return (ERRC, Array<String>())
-    }
 }

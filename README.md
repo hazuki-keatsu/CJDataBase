@@ -10,7 +10,6 @@ This is a database demo composed with Cangjie, the brand-new language.
 
 - [x] `CREATE_DATABASE, DROP_DATABASE, USE, ERR, QUIT, CREATE_TABLE, DROP_TABLE, INFO_TABLE`
 - [ ] `INSERT_INTO, DELETE_FROM, SELECT`
-- [ ] `Array\<T>` to `csv` Func
 
 ## Structure of Database
 
