@@ -168,7 +168,6 @@ class Database {
         database_meta_file.write(dbMeta.serialize().toJson().toString().toArray())
         database_meta_file.close()
         
-        println("Table ${table_name} created successfully.")
         return true
     }
 
@@ -220,7 +219,6 @@ class Database {
             database_meta_file.write(dbMeta.serialize().toJson().toString().toArray())
             database_meta_file.close()
             
-            println("Table ${table_name} dropped successfully.")
             return true
         }
         catch (e: FSException) {
@@ -232,14 +230,12 @@ class Database {
     public func info_table(table_name: String) 
     {
         let tb = Table(table_name,  this.database_name)
-        println("")
         println("Path: ${tb.getPath()}")
         println("Table Name: ${tb.getTableName()}")
         println("Row Count: ${tb.getRowCount()}")
         println("Column Count: ${tb.getColumnCount()}")
         println("Column Names: ${tb.getColumnNames()}")
         println("Column Types: ${tb.getColumnTypes()}")
-        println("")
     }
 
     public func insert(table_name: String, keys: ArrayList<String>, values: ArrayList<String>) : Bool

@@ -178,7 +178,6 @@ class Table
             metaFile.write(tableMeta.serialize().toJson().toString().toArray())
             metaFile.close()
             
-            println("Data inserted successfully.")
             return true
         }
         catch (e: FSException) {
