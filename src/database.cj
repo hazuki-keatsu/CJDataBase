@@ -71,7 +71,7 @@ class Database {
         // 创建数据库注册文件
         let database_meta_file = File(path.join("database.meta"), CreateOrTruncate(true))
 
-        let d = DatabaseMeta("CJDB", "\"" + database_name + "\"", 0, Array<String>())
+        let d = DatabaseMeta("CJDB", database_name, 0, Array<String>())
 
         database_meta_file.write(d.serialize().toJson().toString().toArray())
         return true
@@ -113,42 +113,23 @@ class Database {
             Directory.create(table_path)
         }
         catch (e: FSException) {
-            println("Failed to create table ${table_name} directory.")
+            throw Exception("Failed to create table ${table_name} directory.")
             return false
-        }
-        
-        let key_value = ArrayList<ArrayList<String>>(ArrayList<String>())
-
-        for (i in 0..column_names.size)
-        {
-            key_value[i] = ArrayList<String>([column_names[i], column_types[i]])
-        }
-
-        let key_value_no_class = Array<Array<String>>()
-
-        for (i in 0..key_value.size)
-        {
-            key_value_no_class[i] = key_value[i].toArray()
         }
 
         // 创建表元数据文件
         let table_meta_file = File(table_path.join("table.meta"), CreateOrTruncate(true))
         // 使用meta.cj中的TableMeta类
-        let tm = TableMeta(table_name, 0, UInt64.parse(column_names.size.toString()), key_value_no_class)
+        let tm = TableMeta(table_name, 0, UInt64.parse(column_names.size.toString()), Array<Array<String>>())
+        for (i in 0..column_names.size)
+        {
+            tm.append(column_names[i], column_types[i])
+        }
         table_meta_file.write(tm.serialize().toJson().toString().toArray())
         table_meta_file.close()
         
         // 创建空的数据文件
         let data_file = File(table_path.join("page.data"), CreateOrTruncate(true))
-        
-        // 写入CSV表头
-        var header = "Index,"
-        for (column_name in column_names) {
-            header += column_name + ","
-        }
-        // 移除最后一个逗号并添加换行符
-        header = header.trimRight(",") + "\n"
-        data_file.write(header.toArray())
         data_file.close()
         
         // 创建索引目录
@@ -166,16 +147,9 @@ class Database {
             let index_file_name = "column_" + i.toString() + ".index"
             let index_file = File(index_path.join(index_file_name), CreateOrTruncate(true))
             
-            // 创建初始的空索引
-            let indexMap = HashMap<String, JsonValue>()
-            indexMap["Index"] = JsonValue.fromStr("\"" + i.toString() + "\"")
-            
-            // 创建空的数据映射
-            let dataMap = JsonObject()
-            indexMap["Data"] = dataMap
-            
-            let indexJson = JsonObject(indexMap)
-            index_file.write(indexJson.toString().toArray())
+            let id = IndexData(UInt64(i), Array<Data_file>())
+            let jsonString = id.serialize().toJson().toString()
+            index_file.write(jsonString.toArray())
             index_file.close()
         }
         
@@ -265,11 +239,8 @@ class Database {
         println("Table Name: ${tb.getTableName()}")
         println("Row Count: ${tb.getRowCount()}")
         println("Column Count: ${tb.getColumnCount()}")
-        println("Name\tType")
-        let cn = tb.getColumnNames()
-        println(cn)
-        let ct = tb.getColumnTypes()
-        println(ct)
+        println("Column Names: ${tb.getColumnNames()}")
+        println("Column Types: ${tb.getColumnTypes()}")
     }
 }
 
@@ -314,7 +285,7 @@ class Table
             let dm = DataModel.fromJson(jv)
             let tableMeta = TableMeta.deserialize(dm)
             
-            if (tableMeta.TableName == "\"" + this.table_name + "\"") 
+            if (tableMeta.TableName == this.table_name) 
             {
                 this.row_count = tableMeta.RowCount
                 this.column_count = tableMeta.ColumnCount
@@ -384,21 +355,5 @@ class Table
     public func getTableName() : String 
     {
         return this.table_name
-    }
-    
-    // 获取表信息字符串
-    public func toString() : String 
-    {
-        var result = "Table: ${this.table_name}\n"
-        result += "Row Count: ${this.row_count}\n"
-        result += "Column Count: ${this.column_count}\n"
-        result += "Columns:\n"
-        
-        for (i in 0..this.column_names.size) 
-        {
-            result += "  ${this.column_names[i]} (${this.column_types[i]})\n"
-        }
-        
-        return result
     }
 }
