@@ -6,10 +6,21 @@ English | [中文](./docs/README_zh.md)
 
 This is a database demo composed with Cangjie, the brand-new language.
 
+Due to the little time, I decide not to realize the index file used for quick search.
+
 ## TODO
 
-- [x] `CREATE_DATABASE, DROP_DATABASE, USE, ERR, QUIT, CREATE_TABLE, DROP_TABLE, INFO_TABLE`
-- [ ] `INSERT_INTO, DELETE_FROM, SELECT`
+- [x] `CREATE_DATABASE`
+- [x] `DROP_DATABASE`
+- [x] `USE`
+- [x] `ERR`
+- [x] `QUIT`
+- [x] `CREATE_TABLE`
+- [x] `DROP_TABLE`
+- [x] `INFO_TABLE`
+- [x] `INSERT_INTO`
+- [x] `DELETE_FROM`
+- [x] `SELECT`
 
 ## Structure of Database
 

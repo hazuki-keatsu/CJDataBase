@@ -24,12 +24,12 @@ class InteractiveCommandline
             let command = interactive_commandline(current_database)
             var db: Database
 
-            // 测试命令
-            println("COMMAND: " + command[0].toString())
-            for ((k, v) in command[1])
-            {
-                println("Key: ${k}, Value: ${v}")
-            }
+            // // 测试命令
+            // println("COMMAND: " + command[0].toString())
+            // for ((k, v) in command[1])
+            // {
+            //     println("Key: ${k}, Value: ${v}")
+            // }
 
             match (command[0]) 
             {
@@ -126,7 +126,26 @@ class InteractiveCommandline
                         }
                     }
                 case SELECT =>
-                    println("un")
+                    if (current_database == "")
+                    {
+                        println("You have not used any database.")
+                    }
+                    else
+                    {
+                        db = Database(current_database)
+                        
+                        // 处理列
+                        let columns_str = command[1]["columns"]
+                        
+                        // 处理条件
+                        let condition = if (command[1].contains("condition")) { command[1]["condition"] } else { "" }
+                        
+                        // 处理排序
+                        let order_column = if (command[1].contains("order_column")) { command[1]["order_column"] } else { "" }
+                        let order_direction = if (command[1].contains("order_direction")) { command[1]["order_direction"] } else { "asc" }
+                        
+                        db.select(command[1]["table_name"], columns_str, condition, order_column, order_direction)
+                    }
                 case ERR =>
                     println("Something went wrong. :(")
             }
