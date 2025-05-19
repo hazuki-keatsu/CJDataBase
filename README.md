@@ -21,6 +21,7 @@ Due to the little time, I decide not to realize the index file used for quick se
 - [x] `INSERT_INTO`
 - [x] `DELETE_FROM`
 - [x] `SELECT`
+- [x] `HELP`
 
 ## Structure of Database
 
@@ -54,7 +55,7 @@ name_database
 | Table Name | String |
 | Row Count | UInt |
 | Column Count | UInt |
-| Table Column Info | Map\<String, List<Uint, Type>> |
+| Table Column Info | List\<List<Type, String>> |
 
 ### page.data(.csv)
 
@@ -63,7 +64,7 @@ name_database
 | UInt   | T        | T        | ... |
 | ... | ... | ... | ... |
 
-### column.index(.json)
+### column.index(.json)(Unrealized)
 
 | Key | Value |
 | --- | ----- |

@@ -1,10 +1,24 @@
 package CJDataBase
 
-import std.collection.*
+import std.argopt.*
 
-main(): Int64 {
+var root_dir = "./"
+let version = "1.0-alpha"
+
+main(arg: Array<String>): Int64 {
+
+    if (arg.size > 1)
+    {
+        let shortArgs: Array<String> = arg
+        let longArgName: Array<String> = Array<String>(["--root_dir="])
+        let ao: ArgOpt = ArgOpt(shortArgs, "", longArgName)
+        if (ao.getArg("--root_dir") != None)
+        {
+            root_dir = ao.getArg("--root_dir").getOrThrow()
+        }
+    }
     
-    InteractiveCommandline("0.3-alpha")
+    InteractiveCommandline(version)
 
     return 0
 }

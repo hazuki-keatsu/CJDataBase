@@ -8,8 +8,6 @@ import std.collection.HashMap
 import std.collection.Map
 import std.unicode.*
 
-let root_dir = "./"
-
 class InteractiveCommandline
 {
     var current_database: String = ""
@@ -25,7 +23,7 @@ class InteractiveCommandline
         while (true)
         {
             try {
-                // 获取命令输入（可能包含多个命令）
+                // 获取命令输入
                 let commandInput = get_user_input(current_database)
                 
                 if (commandInput.isEmpty()) {
@@ -78,24 +76,20 @@ class InteractiveCommandline
         match (command.trim().toLower()) {
             case ".help" =>
                 println("Available commands:")
-                println("  CREATE_DATABASE <name>      - Create a new database")
-                println("  USE <database>              - Switch to database")
-                println("  DROP_DATABASE <name>        - Delete a database")
-                println("  CREATE_TABLE <name> <cols>  - Create a new table")
-                println("  DROP_TABLE <name>           - Delete a table")
-                println("  INFO_TABLE <name>           - Show table information")
-                println("  INSERT_INTO <table> ...     - Insert data into table")
-                println("  DELETE_FROM <table> ...     - Delete data from table")
-                println("  SELECT <cols> FROM <table>  - Query data from table")
-                println("  QUIT                        - Exit current database/program")
-                println("\nMultiple commands can be separated with semicolons")
-            case ".quit" =>
-                if (current_database.isEmpty()) {
-                    return 
-                } else {
-                    current_database = ""
-                    println("Exited database. Type .quit again to exit program.")
-                }
+                println("  create database <name>                   - Create a new database")
+                println("  drop database <name>                     - Delete a database")
+                println("  use <name>                               - Switch to database")              
+                println("  create table <name> (<col_type1> <col_name1>, <col_type2> <col_name2>, … )")
+                println("                                           - Create a new table")
+                println("  drop table <name>                        - Delete a table")
+                println("  info table <name>                        - Show table information")
+                println("  insert into <table> set <col_name1>=<col_value1>, <col_name2>=<col_value2>, …")
+                println("                                           - Insert data into table")
+                println("  delete from <table> [where condition]    - Delete data from table")
+                println("  select <col_name1>, <col_name2>, … from <table> [where condition] [order by col_name] [asc/desc]")
+                println("                                           - Query data from table")
+                println("  quit                                     - Exit current database/program")
+                println("Multiple commands can be separated with semicolons(;)")
             case _ =>
                 println("Unknown command: ${command}")
                 println("Type .help for available commands")

@@ -90,7 +90,6 @@ class Table
         // 检查键和值的数量是否匹配
         if (keys.size != values.size) {
             throw Exception("Keys and values count mismatch.")
-            return false
         }
         
         // 创建一个映射，存储列名与值的对应关系
@@ -204,7 +203,6 @@ class Table
         
         if (column_index == -1) {
             throw Exception("Column ${column_name} does not exist in table.")
-            return 0
         }
         
         // 获取列类型

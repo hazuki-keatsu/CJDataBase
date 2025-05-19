@@ -71,6 +71,7 @@ class Database {
         let d = DatabaseMeta("CJDB", database_name, 0, Array<String>())
 
         database_meta_file.write(d.serialize().toJson().toString().toArray())
+        database_meta_file.close()  // 添加文件关闭
         return true
     }
 
@@ -238,7 +239,7 @@ class Database {
         println("Column Types: ${tb.getColumnTypes()}")
     }
 
-    public func insert(table_name: String, keys: ArrayList<String>, values: ArrayList<String>) : Bool
+    public func insert(table_name: String, keys: ArrayList<String>, values: ArrayList<String>)
     {
         let tb = Table(table_name, this.database_name)
         tb.insert(keys, values)
