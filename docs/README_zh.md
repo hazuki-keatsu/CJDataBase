@@ -21,6 +21,8 @@
 - [x] `INSERT_INTO`（插入数据）
 - [x] `DELETE_FROM`（删除数据）
 - [x] `SELECT`（查询数据）
+- [ ] `Concurrent`（协程并发）
+- [ ] `CommandLine Argument`（命令行参数）
 
 ## 数据库结构
 

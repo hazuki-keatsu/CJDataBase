@@ -10,7 +10,7 @@ import std.unicode.*
 
 class InteractiveCommandline
 {
-    var current_database: String = ""
+    static var current_database: String = ""
     let VERSION: String
 
     public init(version: String) 
@@ -19,6 +19,7 @@ class InteractiveCommandline
         println("CJSQL version ${VERSION}")
         println("Enter SQL statements terminated with a \";\"\n")
         println("Enter \".help\" for instructions")
+        println("Enter \".config\" for config")
 
         while (true)
         {
@@ -38,7 +39,6 @@ class InteractiveCommandline
                 
                 // 分割多个命令（通过分号分隔）
                 let commandList = split_commands(commandInput)
-                println(commandList)
                 
                 // 依次执行每个命令
                 for (cmd in commandList) {
@@ -46,20 +46,16 @@ class InteractiveCommandline
                         continue
                     }
                     
-                    // 输出当前执行的命令（便于调试）
-                    println("Executing: ${cmd}")
-                    
                     // 解析单个命令
                     try {
                         let command = command_recognition(cmd)
                         
                         // 执行该命令
-                        execute_command(command)
-                        
-                        // 对于QUIT命令，提前终止执行剩余命令
-                        if (command[0] == QUIT && current_database.isEmpty()) {
+                        if (!execute_command(command))
+                        {
                             return
                         }
+                    
                     } catch (e: Exception) {
                         println("Command parsing error: ${e.message}")
                     }
@@ -76,20 +72,29 @@ class InteractiveCommandline
         match (command.trim().toLower()) {
             case ".help" =>
                 println("Available commands:")
-                println("  create database <name>                   - Create a new database")
-                println("  drop database <name>                     - Delete a database")
-                println("  use <name>                               - Switch to database")              
-                println("  create table <name> (<col_type1> <col_name1>, <col_type2> <col_name2>, … )")
-                println("                                           - Create a new table")
-                println("  drop table <name>                        - Delete a table")
-                println("  info table <name>                        - Show table information")
-                println("  insert into <table> set <col_name1>=<col_value1>, <col_name2>=<col_value2>, …")
-                println("                                           - Insert data into table")
-                println("  delete from <table> [where condition]    - Delete data from table")
-                println("  select <col_name1>, <col_name2>, … from <table> [where condition] [order by col_name] [asc/desc]")
-                println("                                           - Query data from table")
-                println("  quit                                     - Exit current database/program")
+                println("  1> create database <name>                   - Create a new database")
+                println("  2> drop database <name>                     - Delete a database")
+                println("  3> use <name>                               - Switch to database")              
+                println("  4> create table <name> (<col_type1> <col_name1>, <col_type2> <col_name2>, … )")
+                println("                                              - Create a new table")
+                println("  5> drop table <name>                        - Delete a table")
+                println("  6> info table <name>                        - Show table information")
+                println("  7> insert into <table> set <col_name1>=<col_value1>, <col_name2>=<col_value2>, …")
+                println("                                              - Insert data into table")
+                println("  8> delete from <table> [where condition]    - Delete data from table")
+                println("  9> select <col_name1>, <col_name2>, … from <table> [where condition] [order by col_name] [asc/desc]")
+                println("                                              - Query data from table")
+                println("  10> quit                                    - Exit current database/program")
                 println("Multiple commands can be separated with semicolons(;)")
+            case ".config" =>
+                println("Config:")
+                println("  1> Root Directory: ${root_dir}")
+                print("Please input the directory you want to store the database:\n> ")
+                let input = Console.stdIn.readln()
+                if (input != None)
+                {
+                    root_dir = input.getOrThrow()
+                }
             case _ =>
                 println("Unknown command: ${command}")
                 println("Type .help for available commands")
@@ -141,12 +146,6 @@ class InteractiveCommandline
             result.append(finalCommand)
         }
         
-        // 调试输出
-        println("Split commands result:")
-        for (i in 0..result.size) {
-            println("  Command ${i+1}: ${result[i]}")
-        }
-
         return result
     }
     
@@ -176,16 +175,8 @@ class InteractiveCommandline
     }
 
     // 执行单个命令
-    private func execute_command(command: (COMMAND, Map<String, String>)) : Unit
-    {
-        // 输出命令类型和参数（调试）
-        println("Command type: ${command[0].toString()}")
-        println("Command params:")
-        for ((k, v) in command[1])
-        {
-            println("Key: ${k}; Value: ${v}")
-        }
-        
+    private func execute_command(command: (COMMAND, Map<String, String>)) : Bool
+    {   
         var db: Database
             
         match (command[0]) 
@@ -193,89 +184,98 @@ class InteractiveCommandline
             case QUIT =>
                 if (current_database.isEmpty())
                 {
-                    return
+                    return false
                 }
                 else
                 {
                     current_database = ""
                     println("Exited database. Type QUIT again to exit program.")
+                    return true
                 } 
             case CREATE_DATABASE =>
                 try {
                     if (!command[1].contains("database_name") || command[1]["database_name"].isEmpty()) {
                         println("Error: Database name is required.")
-                        return
                     }
                     Database.create_database(command[1]["database_name"])
                     println("Database ${command[1]["database_name"]} created successfully.")
+                    return true
                 } catch (e: Exception) {
                     println("Failed to create database: ${e.message}")
+                    return true
                 }
             case USE =>
                 if (current_database != "")
                 {
                     println("You have already entered database: ${current_database}")
                     println("Type QUIT first to switch databases.")
+                    return true
                 }
                 else
                 {
                     try {
                         if (!command[1].contains("database_name") || command[1]["database_name"].isEmpty()) {
                             println("Error: Database name is required.")
-                            return
+                            return true
                         }
                         
                         if (Directory.exists(root_dir + command[1]["database_name"]))
                         {
                             current_database = command[1]["database_name"]
                             println("Successfully switched to database: ${current_database}")
+                            return true
                         }
                         else
                         {
                             println("Error: Database '${command[1]["database_name"]}' does not exist.")
+                            return true
                         }
                     } catch (e: Exception) {
                         println("Failed to use database: ${e.message}")
+                        return true
                     }
                 }
             case DROP_DATABASE => 
                 try {
                     if (!command[1].contains("database_name") || command[1]["database_name"].isEmpty()) {
                         println("Error: Database name is required.")
-                        return
+                        return true
                     }
                     
                     if (command[1]["database_name"] == current_database) {
                         println("Error: Cannot drop the current database. Exit it first.")
-                        return
+                        return true
                     }
                     
                     if (!Directory.exists(root_dir + command[1]["database_name"])) {
                         println("Error: Database '${command[1]["database_name"]}' does not exist.")
-                        return
+                        return true
                     }
                     
                     Database.drop_database(command[1]["database_name"])
                     println("Database ${command[1]["database_name"]} dropped successfully.")
+                    return true
                 } catch (e: Exception) {
                     println("Failed to drop database: ${e.message}")
+                    return true
                 }
             case CREATE_TABLE =>
                 if (current_database == "")
                 {
                     println("Error: You have not used any database. Use a database first.")
+                    return true
                 }
                 else
                 {
                     try {
                         if (!command[1].contains("table_name") || command[1]["table_name"].isEmpty()) {
                             println("Error: Table name is required.")
-                            return
+                            return true
                         }
                         
                         if (!command[1].contains("columns") || !command[1].contains("types")) {
                             println("Error: Columns and types are required.")
-                            return
+                            return true
                         }
                         
                         db = Database(current_database)
@@ -285,67 +285,77 @@ class InteractiveCommandline
                             ArrayList<String>(command[1]["types"].split(" ", removeEmpty: true))
                         )
                         println("Table ${command[1]["table_name"]} created successfully.")
+                        return true
                     } catch (e: NoneValueException) {
                         println("Error: Invalid syntax. Missing arguments for table creation.")
+                        return true
                     } catch (e: Exception) {
                         println("Failed to create table: ${e.message}")
+                        return true
                     }
                 }
             case DROP_TABLE =>  
                 if (current_database == "")
                 {
                     println("Error: You have not used any database. Use a database first.")
+                    return true
                 }
                 else
                 {
                     try {
                         if (!command[1].contains("table_name") || command[1]["table_name"].isEmpty()) {
                             println("Error: Table name is required.")
-                            return
+                            return true
                         }
                         
                         db = Database(current_database)
                         db.drop_table(command[1]["table_name"])
                         println("Table ${command[1]["table_name"]} dropped successfully.")
+                        return true
                     } catch (e: Exception) {
                         println("Failed to drop table: ${e.message}")
+                        return true
                     }
                 }
             case INFO_TABLE =>
                 if (current_database == "")
                 {
                     println("Error: You have not used any database. Use a database first.")
+                    return true
                 }
                 else
                 {
                     try {
                         if (!command[1].contains("table_name") || command[1]["table_name"].isEmpty()) {
                             println("Error: Table name is required.")
-                            return
+                            return true
                         }
                         
                         db = Database(current_database)                      
                         db.info_table(command[1]["table_name"])
+                        return true
                     } catch (e: Exception) {
                         println("Failed to get table info: ${e.message}")
+                        return true
                     }
                 }
             case INSERT_INTO =>
                 if (current_database == "")
                 {
                     println("Error: You have not used any database. Use a database first.")
+                    return true
                 }
                 else
                 {
                     try {
                         if (!command[1].contains("table_name") || command[1]["table_name"].isEmpty()) {
                             println("Error: Table name is required.")
-                            return
+                            return true
                         }
                         
                         if (!command[1].contains("keys") || !command[1].contains("values")) {
                             println("Error: Keys and values are required.")
-                            return
+                            return true
                         }
                         
                         db = Database(current_database)                      
@@ -355,21 +365,24 @@ class InteractiveCommandline
                             ArrayList<String>(command[1]["values"].split(" "))
                         )
                         println("Data inserted into table ${command[1]["table_name"]} successfully.")
+                        return true
                     } catch (e: Exception) {
                         println("Failed to insert data: ${e.message}")
+                        return true
                     }
                 }
             case DELETE_FROM =>
                 if (current_database == "")
                 {
                     println("Error: You have not used any database. Use a database first.")
+                    return true
                 }
                 else
                 {
                     try {
                         if (!command[1].contains("table_name") || command[1]["table_name"].isEmpty()) {
                             println("Error: Table name is required.")
-                            return
+                            return true
                         }
                         
                         db = Database(current_database)  
@@ -377,32 +390,36 @@ class InteractiveCommandline
                         {
                             db.delete(command[1]["table_name"])
                             println("All data deleted from table ${command[1]["table_name"]}.")
+                            return true
                         }   
                         else
                         {
                             db.delete(command[1]["table_name"], command[1]["condition"])
                             println("Data matching condition deleted from table ${command[1]["table_name"]}.")
+                            return true
                         }
                     } catch (e: Exception) {
                         println("Failed to delete data: ${e.message}")
+                        return true
                     }
                 }
             case SELECT =>
                 if (current_database == "")
                 {
                     println("Error: You have not used any database. Use a database first.")
+                    return true
                 }
                 else
                 {
                     try {
                         if (!command[1].contains("table_name") || command[1]["table_name"].isEmpty()) {
                             println("Error: Table name is required.")
-                            return
+                            return true
                         }
                         
                         if (!command[1].contains("columns") || command[1]["columns"].isEmpty()) {
                             println("Error: Column selection is required.")
-                            return
+                            return true
                         }
                         
                         db = Database(current_database)
@@ -420,10 +437,12 @@ class InteractiveCommandline
                         db.select(command[1]["table_name"], columns_str, condition, order_column, order_direction)
                     } catch (e: Exception) {
                         println("Failed to execute SELECT query: ${e.message}")
+                        return true
                     }
                 }
             case ERR =>
                 println("Error: Command syntax is incorrect.")
+                return true
         }
     }
 }

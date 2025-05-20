@@ -22,6 +22,8 @@ Due to the little time, I decide not to realize the index file used for quick se
 - [x] `DELETE_FROM`
 - [x] `SELECT`
 - [x] `HELP`
+- [ ] `Concurrent`
+- [ ] `CommandLine Argument`
 
 ## Structure of Database
 
@@ -55,7 +57,7 @@ name_database
 | Table Name | String |
 | Row Count | UInt |
 | Column Count | UInt |
-| Table Column Info | List\<List<Type, String>> |
+| Table Column Info | List<List<Type, String>> |
 
 ### page.data(.csv)
 
