@@ -127,7 +127,7 @@ class Table
                 // 如果是浮点数类型
                 else if (columnType == "float") {
                     // 验证是否为有效浮点数
-                    let _ = Float64.parse(value)
+                    let _ = Float64.parse(trim_for_13(value))
                     rowData.append(value)
                 }
                 // 其他类型（默认作为字符串处理）
@@ -235,7 +235,7 @@ class Table
             var numeric_condition_value: Float64 = 0.0
             if (is_numeric) {
                 try {
-                    numeric_condition_value = Float64.parse(value)
+                    numeric_condition_value = Float64.parse(trim_for_13(value))
                 } 
                 catch (e: Exception) {
                     throw Exception("Invalid numeric value for comparison: ${value}")
@@ -268,7 +268,7 @@ class Table
                 if (is_numeric) {
                     // 数值比较
                     try {
-                        let numeric_cell_value = Float64.parse(cell_value)
+                        let numeric_cell_value = Float64.parse(trim_for_13(cell_value))
                         
                         if (operator_name == "=") {
                             keep_row = numeric_cell_value != numeric_condition_value

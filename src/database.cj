@@ -512,8 +512,8 @@ class Database {
                 if (is_numeric) {
                     // 数值比较
                     try {
-                        let val1 = Float64.parse(rows[j][col_index])
-                        let val2 = Float64.parse(rows[j+1][col_index])
+                        let val1 = Float64.parse(trim_for_13(rows[j][col_index]))
+                        let val2 = Float64.parse(trim_for_13(rows[j+1][col_index]))
                         
                         if (direction == "asc" && val1 > val2) {
                             swap = true
@@ -609,8 +609,8 @@ class Database {
                     comparison_value = substring(comparison_value, 1, end_index: comparison_value.size - 1)
                 }
                 
-                let num_current = Float64.parse(current_value)
-                let num_comparison = Float64.parse(comparison_value)
+                let num_current = Float64.parse(trim_for_13(current_value))
+                let num_comparison = Float64.parse(trim_for_13(comparison_value))
                 
                 if (op == "=") 
                 {
@@ -626,6 +626,7 @@ class Database {
                 }
             }
             catch (e: Exception) {
+                println(e)
                 // 如果解析失败，按字符串比较
                 return compareStrings(current_value, op, comparison_value)
             }
