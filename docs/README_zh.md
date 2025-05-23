@@ -23,6 +23,8 @@
 - [x] `SELECT`（查询数据）
 - [ ] `Concurrent`（协程并发）
 - [ ] `CommandLine Argument`（命令行参数）
+- [ ] `Native Logical Delete`（原生逻辑删除）
+- [ ] `Segmented storage`（分卷存储）
 
 ## 数据库结构
 

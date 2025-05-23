@@ -24,6 +24,8 @@ Due to the little time, I decide not to realize the index file used for quick se
 - [x] `HELP`
 - [ ] `Concurrent`
 - [ ] `CommandLine Argument`
+- [ ] `Native Logical Delete`
+- [ ] `Segmented storage`
 
 ## Structure of Database
 
