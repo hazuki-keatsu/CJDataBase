@@ -33,6 +33,7 @@ func trim_for_13(input: String)
         return input
     }
 }
+
 //                            _ooOoo_  
 //                           o8888888o  
 //                           88" . "88  
