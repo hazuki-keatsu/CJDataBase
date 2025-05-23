@@ -245,56 +245,6 @@ class Database {
         tb.insert(keys, values)
     }
 
-    public func delete(table_name: String, condition: String) : Bool
-    {
-        // 检查表是否存在
-        if (!this.table_name.contains(table_name)) {
-            throw Exception("Table ${table_name} does not exist.")
-            return false
-        }
-        
-        var parts = condition.split(" ")
-        var op = ""
-
-        if (condition.contains("<"))
-        {
-            parts = condition.split("<")
-            op = "<"
-        }
-        else if (condition.contains(">"))
-        {
-            parts = condition.split(">")
-            op = ">"
-        }
-        else if (condition.contains("="))
-        {
-            parts = condition.split("=")
-            op = "="
-        }
-
-        if (parts.size != 2) {
-            throw Exception("Invalid condition format. Should be 'column_name operator value'.")
-            return false
-        }
-        
-        let column_name = parts[0]
-        let operator_name = op
-        let value = parts[1]
-        
-        // 验证运算符
-        if (operator_name != ">" && operator_name != "<" && operator_name != "=") {
-            throw Exception("Invalid operator. Supported operators: >, <, =")
-            return false
-        }
-        
-        // 获取表对象
-        let tb = Table(table_name, this.database_name)
-        
-        // 调用表的delete_where方法
-        let deleted_count = tb.delete(column_name, operator_name, value)
-        return deleted_count > 0
-    }
-
     public func delete(table_name: String)
     {
         let json_file = File(Path(root_dir).join(database_name).join(table_name).join("table.meta"), Open(true, true))
@@ -319,171 +269,6 @@ class Database {
         meta_file.close()
         
         println("All records in table ${table_name} have been deleted.")
-    }
-
-    // SELECT 查询函数
-    public func select(table_name: String, columns: String, condition: String, order_column: String, order_direction: String) : Bool
-    {
-        // 检查表是否存在
-        if (!this.table_name.contains(table_name)) {
-            throw Exception("Table ${table_name} does not exist.")
-            return false
-        }
-        
-        try {
-            // 获取表对象
-            let tb = Table(table_name, this.database_name)
-            
-            // 解析要选择的列
-            var selected_columns = ArrayList<String>()
-            if (columns == "*") {
-                // 选择所有列
-                selected_columns = tb.getColumnNames()
-            } else {
-                // 选择指定列
-                let col_names = columns.split(" ")
-                for (col in col_names) {
-                    if (!col.isEmpty()) {
-                        selected_columns.append(col)
-                    }
-                }
-            }
-            
-            // 验证选择的列是否存在
-            let all_columns = tb.getColumnNames()
-            for (col in selected_columns) {
-                var found = false
-                for (actual_col in all_columns) {
-                    if (col == actual_col) {
-                        found = true
-                        break
-                    }
-                }
-                
-                if (!found) {
-                    throw Exception("Column ${col} does not exist in table ${table_name}.")
-                    return false
-                }
-            }
-            
-            // 读取表数据
-            let data = tb.readAllData()
-            if (data.isEmpty()) {
-                println("No data in table ${table_name}.")
-                return true
-            }
-            
-            // 按行解析数据
-            let rows = data.split("\n")
-            let result_rows = ArrayList<ArrayList<String>>()
-            
-            // 获取列索引映射
-            let column_indices = HashMap<String, UInt64>()
-            let all_column_names = tb.getColumnNames()
-            let column_types = tb.getColumnTypes()
-            
-            for (i in 0..all_column_names.size) {
-                column_indices.put(all_column_names[i], UInt64(i))
-            }
-            
-            // 筛选符合条件的行
-            for (row_str in rows) {
-                if (row_str.isEmpty()) {
-                    continue
-                }
-                
-                let values = row_str.split(",")
-                
-                // 检查是否符合条件
-                if (!condition.isEmpty()) {
-                    var meets_condition = evaluateCondition(condition, values, column_indices, column_types)
-                    if (!meets_condition) {
-                        continue
-                    }
-                }
-                
-                // 提取选定的列
-                let selected_values = ArrayList<String>()
-                for (col in selected_columns) {
-                    let col_index = column_indices[col]
-                    if (col_index < UInt64(values.size)) {
-                        selected_values.append(values[Int64(col_index)])
-                    } else {
-                        selected_values.append("")
-                    }
-                }
-                
-                result_rows.append(selected_values)
-            }
-            
-            // 如果有排序需求
-            if (!order_column.isEmpty()) {
-                // 验证排序列是否有效
-                if (!column_indices.contains(order_column)) {
-                    throw Exception("Order column ${order_column} does not exist.")
-                    return false
-                }
-                
-                // 获取排序列的索引
-                var order_col_index = -1
-                for (i in 0..selected_columns.size) {
-                    if (selected_columns[i] == order_column) {
-                        order_col_index = i
-                        break
-                    }
-                }
-                
-                // 如果排序列不在选择列中
-                if (order_col_index == -1) {
-                    throw Exception("Order column must be in the selected columns.")
-                    return false
-                }
-                
-                // 获取排序列的类型
-                let col_type = column_types[Int64(column_indices[order_column])]
-                let is_numeric = col_type == "int" || col_type == "float"
-                
-                // 排序
-                sortRows(result_rows, order_col_index, is_numeric, order_direction)
-            }
-            
-            // 显示结果标题
-            var header = ""
-            for (i in 0..selected_columns.size) {
-                if (i > 0) {
-                    header += "\t"
-                }
-                header += selected_columns[i]
-            }
-            println(header)
-            
-            // 显示分割线
-            var separator = ""
-            for (i in 0..header.size) {
-                separator += "-"
-            }
-            println(separator)
-
-            // 显示数据行
-            for (row in result_rows) {
-                var row_str = ""
-                for (i in 0..row.size) {
-                    if (i > 0) {
-                        row_str += "\t"
-                    }
-                    let value = row[i]
-
-                    row_str += value
-                }
-                println(row_str)
-            }
-            
-            return true
-        }
-        catch (e: Exception) {
-            println("Error during select operation: ${e}")
-            return false
-        }
     }
     
     // 格式化值（去除多余引号等）
@@ -554,13 +339,20 @@ class Database {
         }
     }
     
-    // 评估条件
-    private func evaluateCondition(condition: String, values: Array<String>, column_indices: Map<String, UInt64>, column_types: ArrayList<String>) : Bool {
-        // 简单条件处理
+    // 提取的私有方法：检查表是否存在
+    private func validateTableExists(table_name: String) : Bool {
+        if (!this.table_name.contains(table_name)) {
+            throw Exception("Table ${table_name} does not exist.")
+            return false
+        }
+        return true
+    }
+
+    // 提取的私有方法：解析条件
+    private func parseCondition(condition: String) : (String, String, String) {
         var parts = condition.split(" ")
         var op = ""
-        
-        // 检查条件中的操作符
+
         if (condition.contains("<")) {
             parts = condition.split("<")
             op = "<"
@@ -573,14 +365,211 @@ class Database {
             parts = condition.split("=")
             op = "="
         }
-        
+
         if (parts.size != 2) {
-            throw Exception("Invalid condition format: ${condition}")
+            throw Exception("Invalid condition format. Should be 'column_name operator value'.")
+        }
+        
+        let column_name = parts[0]
+        let operator_name = op
+        let value = parts[1]
+        
+        // 验证运算符
+        if (operator_name != ">" && operator_name != "<" && operator_name != "=") {
+            throw Exception("Invalid operator. Supported operators: >, <, =")
+        }
+
+        return (column_name, operator_name, value)
+    }
+
+    public func delete(table_name: String, condition: String) : Bool
+    {
+        // 使用提取的方法检查表存在性
+        if (!validateTableExists(table_name)) {
             return false
         }
         
-        let col_name = parts[0].trimAscii()
-        var comparison_value = parts[1].trimAscii()
+        // 使用提取的方法解析条件
+        let (column_name, operator_name, value) = parseCondition(condition)
+        
+        // 获取表对象
+        let tb = Table(table_name, this.database_name)
+        
+        // 调用表的delete_where方法
+        let deleted_count = tb.delete(column_name, operator_name, value)
+        return deleted_count > 0
+    }
+
+    // SELECT 查询函数
+    public func select(table_name: String, columns: String, condition: String, order_column: String, order_direction: String) : Bool
+    {
+        // 使用提取的方法检查表存在性
+        if (!validateTableExists(table_name)) {
+            return false
+        }
+        
+        try {
+            // 获取表对象
+            let tb = Table(table_name, this.database_name)
+            
+            // 解析要选择的列
+            var selected_columns = ArrayList<String>()
+            if (columns == "*") {
+                // 选择所有列
+                selected_columns = tb.getColumnNames()
+            } else {
+                // 选择指定列
+                let col_names = columns.split(" ")
+                for (col in col_names) {
+                    if (!col.isEmpty()) {
+                        selected_columns.append(col)
+                    }
+                }
+            }
+            
+            // 验证选择的列是否存在
+            let all_columns = tb.getColumnNames()
+            for (col in selected_columns) {
+                var found = false
+                for (actual_col in all_columns) {
+                    if (col == actual_col) {
+                        found = true
+                        break
+                    }
+                }
+                
+                if (!found) {
+                    throw Exception("Column ${col} does not exist in table ${table_name}.")
+                    return false
+                }
+            }
+            
+            // 读取表数据
+            let data = tb.readAllData()
+            if (data.isEmpty()) {
+                println("No data in table ${table_name}.")
+                return true
+            }
+            
+            // 按行解析数据
+            let rows = data.split("\n")
+            let result_rows = ArrayList<ArrayList<String>>()
+            
+            // 获取列索引映射
+            let column_indices = HashMap<String, UInt64>()
+            let all_column_names = tb.getColumnNames()
+            let column_types = tb.getColumnTypes()
+            
+            for (i in 0..all_column_names.size) {
+                column_indices.put(all_column_names[i], UInt64(i))
+            }
+            
+            // 筛选符合条件的行
+            for (row_str in rows) {
+                if (row_str.isEmpty()) {
+                    continue
+                }
+                
+                let values = row_str.split(",")
+                
+                // 检查是否符合条件
+                if (!condition.isEmpty()) {
+                    var meets_condition = evaluateConditionWithParsing(condition, values, column_indices, column_types)
+                    if (!meets_condition) {
+                        continue
+                    }
+                }
+                
+                // 提取选定的列
+                let selected_values = ArrayList<String>()
+                for (col in selected_columns) {
+                    let col_index = column_indices[col]
+                    if (col_index < UInt64(values.size)) {
+                        selected_values.append(values[Int64(col_index)])
+                    } else {
+                        selected_values.append("")
+                    }
+                }
+                
+                result_rows.append(selected_values)
+            }
+            
+            // 如果有排序需求
+            if (!order_column.isEmpty()) {
+                // 验证排序列是否有效
+                if (!column_indices.contains(order_column)) {
+                    throw Exception("Order column ${order_column} does not exist.")
+                    return false
+                }
+                
+                // 获取排序列的索引
+                var order_col_index = -1
+                for (i in 0..selected_columns.size) {
+                    if (selected_columns[i] == order_column) {
+                        order_col_index = i
+                        break
+                    }
+                }
+                
+                // 如果排序列不在选择列中
+                if (order_col_index == -1) {
+                    throw Exception("Order column must be in the selected columns.")
+                    return false
+                }
+                
+                // 获取排序列的类型
+                let col_type = column_types[Int64(column_indices[order_column])]
+                let is_numeric = col_type == "int" || col_type == "float"
+                
+                // 排序
+                sortRows(result_rows, order_col_index, is_numeric, order_direction)
+            }
+            
+            // 显示结果标题
+            var header = "num>"
+            for (i in 0..selected_columns.size) {
+                if (i >= 0) {
+                    header += "\t"
+                }
+                header += selected_columns[i]
+            }
+            println(header)
+            
+            // 显示分割线
+            var separator = ""
+            for (i in 0..header.size) {
+                separator += "-"
+            }
+            println(separator)
+
+            // 显示数据行
+            var num = 0
+            for (row in result_rows) {
+                var row_str = "${num}>"
+                for (i in 0..row.size) {
+                    if (i >= 0) {
+                        row_str += "\t"
+                    }
+                    let value = row[i]
+
+                    row_str += value
+                }
+                num++
+                println(row_str)
+            }
+            
+            return true
+        }
+        catch (e: Exception) {
+            println("Error during select operation: ${e}")
+            return false
+        }
+    }
+
+    // 条件评估方法
+    private func evaluateConditionWithParsing(condition: String, values: Array<String>, column_indices: Map<String, UInt64>, column_types: ArrayList<String>) : Bool {
+        // 使用提取的条件解析方法
+        let (col_name, op, comparison_value) = parseCondition(condition)
         
         // 检查列是否存在
         if (!column_indices.contains(col_name)) {
@@ -605,12 +594,13 @@ class Database {
             // 数值比较
             try {
                 // 对于数值比较，需要处理引号
-                if (comparison_value.startsWith("\"") && comparison_value.endsWith("\"")) {
-                    comparison_value = substring(comparison_value, 1, end_index: comparison_value.size - 1)
+                var clean_comparison_value = comparison_value
+                if (clean_comparison_value.startsWith("\"") && clean_comparison_value.endsWith("\"")) {
+                    clean_comparison_value = substring(clean_comparison_value, 1, end_index: clean_comparison_value.size - 1)
                 }
                 
                 let num_current = Float64.parse(trim_for_13(current_value))
-                let num_comparison = Float64.parse(trim_for_13(comparison_value))
+                let num_comparison = Float64.parse(trim_for_13(clean_comparison_value))
                 
                 if (op == "=") 
                 {
@@ -638,7 +628,12 @@ class Database {
         
         return false
     }
-    
+
+    // 保留原有的evaluateCondition方法以保持向后兼容，但内部使用新的方法
+    private func evaluateCondition(condition: String, values: Array<String>, column_indices: Map<String, UInt64>, column_types: ArrayList<String>) : Bool {
+        return evaluateConditionWithParsing(condition, values, column_indices, column_types)
+    }
+
     // 字符串比较
     private func compareStrings(str1: String, op: String, str2: String) : Bool {
         var s1 = str1

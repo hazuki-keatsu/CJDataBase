@@ -1,0 +1,3 @@
+create database covid
+use covid
+create table usa (int id, float cli, float ili, float hh_cmnty_cli, float nohh_cmnty_cli, float wearing_mask, float travel_outside_state, float work_outside_home, float shop, float restaurant, float spent_time, float large_event, float public_transit, float anxious, float depressed, float worried_finances, float tested_positive)
