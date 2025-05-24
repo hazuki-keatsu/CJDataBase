@@ -272,7 +272,8 @@ class Database {
     }
     
     // 格式化值（去除多余引号等）
-    private func formatValue(value: String) : String {
+    private func formatValue(value: String) : String 
+    {
         if (value == "") {
             return ""
         }
@@ -288,7 +289,8 @@ class Database {
     }
     
     // 排序行
-    private func sortRows(rows: ArrayList<ArrayList<String>>, col_index: Int64, is_numeric: Bool, direction: String) {
+    private func sortRows(rows: ArrayList<ArrayList<String>>, col_index: Int64, is_numeric: Bool, direction: String) 
+    {
         // 自定义排序
         for (i in 0..(rows.size - 1)) {
             for (j in 0..(rows.size - i - 2)) {
@@ -340,7 +342,8 @@ class Database {
     }
     
     // 提取的私有方法：检查表是否存在
-    private func validateTableExists(table_name: String) : Bool {
+    private func validateTableExists(table_name: String) : Bool 
+    {
         if (!this.table_name.contains(table_name)) {
             throw Exception("Table ${table_name} does not exist.")
             return false
@@ -349,7 +352,8 @@ class Database {
     }
 
     // 提取的私有方法：解析条件
-    private func parseCondition(condition: String) : (String, String, String) {
+    private func parseCondition(condition: String) : (String, String, String) 
+    {
         var parts = condition.split(" ")
         var op = ""
 
@@ -474,7 +478,7 @@ class Database {
                 
                 // 检查是否符合条件
                 if (!condition.isEmpty()) {
-                    var meets_condition = evaluateConditionWithParsing(condition, values, column_indices, column_types)
+                    var meets_condition = evaluateCondition(condition, values, column_indices, column_types)
                     if (!meets_condition) {
                         continue
                     }
@@ -567,7 +571,8 @@ class Database {
     }
 
     // 条件评估方法
-    private func evaluateConditionWithParsing(condition: String, values: Array<String>, column_indices: Map<String, UInt64>, column_types: ArrayList<String>) : Bool {
+    private func evaluateCondition(condition: String, values: Array<String>, column_indices: Map<String, UInt64>, column_types: ArrayList<String>) : Bool 
+    {
         // 使用提取的条件解析方法
         let (col_name, op, comparison_value) = parseCondition(condition)
         
@@ -629,13 +634,9 @@ class Database {
         return false
     }
 
-    // 保留原有的evaluateCondition方法以保持向后兼容，但内部使用新的方法
-    private func evaluateCondition(condition: String, values: Array<String>, column_indices: Map<String, UInt64>, column_types: ArrayList<String>) : Bool {
-        return evaluateConditionWithParsing(condition, values, column_indices, column_types)
-    }
-
     // 字符串比较
-    private func compareStrings(str1: String, op: String, str2: String) : Bool {
+    private func compareStrings(str1: String, op: String, str2: String) : Bool 
+    {
         var s1 = str1
         var s2 = str2
         
