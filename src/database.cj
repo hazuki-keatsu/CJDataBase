@@ -270,6 +270,24 @@ class Database {
         
         println("All records in table ${table_name} have been deleted.")
     }
+
+    public func delete(table_name: String, condition: String) : Bool
+    {
+        // 使用提取的方法检查表存在性
+        if (!validateTableExists(table_name)) {
+            return false
+        }
+        
+        // 使用提取的方法解析条件
+        let (column_name, operator_name, value) = parseCondition(condition)
+        
+        // 获取表对象
+        let tb = Table(table_name, this.database_name)
+        
+        // 调用表的delete方法
+        let deleted_count = tb.delete(column_name, operator_name, value)
+        return deleted_count > 0
+    }
     
     // 格式化值（去除多余引号等）
     private func formatValue(value: String) : String 
@@ -286,122 +304,6 @@ class Database {
         println(formatted)
 
         return formatted
-    }
-    
-    // 排序行
-    private func sortRows(rows: ArrayList<ArrayList<String>>, col_index: Int64, is_numeric: Bool, direction: String) 
-    {
-        // 自定义排序
-        for (i in 0..(rows.size - 1)) {
-            for (j in 0..(rows.size - i - 2)) {
-                var swap = false
-                
-                if (is_numeric) {
-                    // 数值比较
-                    try {
-                        let val1 = Float64.parse(trim_for_13(rows[j][col_index]))
-                        let val2 = Float64.parse(trim_for_13(rows[j+1][col_index]))
-                        
-                        if (direction == "asc" && val1 > val2) {
-                            swap = true
-                        } else if (direction == "desc" && val1 < val2) {
-                            swap = true
-                        }
-                    }
-                    catch (e: Exception) {
-                        // 如果解析失败，按字符串处理
-                        let str1 = formatValue(rows[j][col_index])
-                        let str2 = formatValue(rows[j+1][col_index])
-                        
-                        if (direction == "asc" && str1 > str2) {
-                            swap = true
-                        } else if (direction == "desc" && str1 < str2) {
-                            swap = true
-                        }
-                    }
-                }
-                else {
-                    // 字符串比较
-                    let str1 = formatValue(rows[j][col_index])
-                    let str2 = formatValue(rows[j+1][col_index])
-                    
-                    if (direction == "asc" && str1 > str2) {
-                        swap = true
-                    } else if (direction == "desc" && str1 < str2) {
-                        swap = true
-                    }
-                }
-                
-                if (swap) {
-                    let temp = rows[j]
-                    rows[j] = rows[j+1]
-                    rows[j+1] = temp
-                }
-            }
-        }
-    }
-    
-    // 提取的私有方法：检查表是否存在
-    private func validateTableExists(table_name: String) : Bool 
-    {
-        if (!this.table_name.contains(table_name)) {
-            throw Exception("Table ${table_name} does not exist.")
-            return false
-        }
-        return true
-    }
-
-    // 提取的私有方法：解析条件
-    private func parseCondition(condition: String) : (String, String, String) 
-    {
-        var parts = condition.split(" ")
-        var op = ""
-
-        if (condition.contains("<")) {
-            parts = condition.split("<")
-            op = "<"
-        }
-        else if (condition.contains(">")) {
-            parts = condition.split(">")
-            op = ">"
-        }
-        else if (condition.contains("=")) {
-            parts = condition.split("=")
-            op = "="
-        }
-
-        if (parts.size != 2) {
-            throw Exception("Invalid condition format. Should be 'column_name operator value'.")
-        }
-        
-        let column_name = parts[0]
-        let operator_name = op
-        let value = parts[1]
-        
-        // 验证运算符
-        if (operator_name != ">" && operator_name != "<" && operator_name != "=") {
-            throw Exception("Invalid operator. Supported operators: >, <, =")
-        }
-
-        return (column_name, operator_name, value)
-    }
-
-    public func delete(table_name: String, condition: String) : Bool
-    {
-        // 使用提取的方法检查表存在性
-        if (!validateTableExists(table_name)) {
-            return false
-        }
-        
-        // 使用提取的方法解析条件
-        let (column_name, operator_name, value) = parseCondition(condition)
-        
-        // 获取表对象
-        let tb = Table(table_name, this.database_name)
-        
-        // 调用表的delete_where方法
-        let deleted_count = tb.delete(column_name, operator_name, value)
-        return deleted_count > 0
     }
 
     // SELECT 查询函数
@@ -569,6 +471,104 @@ class Database {
             return false
         }
     }
+
+    // 排序行
+    private func sortRows(rows: ArrayList<ArrayList<String>>, col_index: Int64, is_numeric: Bool, direction: String) 
+    {
+        // 自定义排序
+        for (i in 0..(rows.size - 1)) {
+            for (j in 0..(rows.size - i - 2)) {
+                var swap = false
+                
+                if (is_numeric) {
+                    // 数值比较
+                    try {
+                        let val1 = Float64.parse(trim_for_13(rows[j][col_index]))
+                        let val2 = Float64.parse(trim_for_13(rows[j+1][col_index]))
+                        
+                        if (direction == "asc" && val1 > val2) {
+                            swap = true
+                        } else if (direction == "desc" && val1 < val2) {
+                            swap = true
+                        }
+                    }
+                    catch (e: Exception) {
+                        // 如果解析失败，按字符串处理
+                        let str1 = formatValue(rows[j][col_index])
+                        let str2 = formatValue(rows[j+1][col_index])
+                        
+                        if (direction == "asc" && str1 > str2) {
+                            swap = true
+                        } else if (direction == "desc" && str1 < str2) {
+                            swap = true
+                        }
+                    }
+                }
+                else {
+                    // 字符串比较
+                    let str1 = formatValue(rows[j][col_index])
+                    let str2 = formatValue(rows[j+1][col_index])
+                    
+                    if (direction == "asc" && str1 > str2) {
+                        swap = true
+                    } else if (direction == "desc" && str1 < str2) {
+                        swap = true
+                    }
+                }
+                
+                if (swap) {
+                    let temp = rows[j]
+                    rows[j] = rows[j+1]
+                    rows[j+1] = temp
+                }
+            }
+        }
+    }
+    
+    // 提取的私有方法：检查表是否存在
+    private func validateTableExists(table_name: String) : Bool 
+    {
+        if (!this.table_name.contains(table_name)) {
+            throw Exception("Table ${table_name} does not exist.")
+            return false
+        }
+        return true
+    }
+
+    // 提取的私有方法：解析条件
+    private func parseCondition(condition: String) : (String, String, String) 
+    {
+        var parts = condition.split(" ")
+        var op = ""
+
+        if (condition.contains("<")) {
+            parts = condition.split("<")
+            op = "<"
+        }
+        else if (condition.contains(">")) {
+            parts = condition.split(">")
+            op = ">"
+        }
+        else if (condition.contains("=")) {
+            parts = condition.split("=")
+            op = "="
+        }
+
+        if (parts.size != 2) {
+            throw Exception("Invalid condition format. Should be 'column_name operator value'.")
+        }
+        
+        let column_name = parts[0]
+        let operator_name = op
+        let value = parts[1]
+        
+        // 验证运算符
+        if (operator_name != ">" && operator_name != "<" && operator_name != "=") {
+            throw Exception("Invalid operator. Supported operators: >, <, =")
+        }
+
+        return (column_name, operator_name, value)
+    }  
 
     // 条件评估方法
     private func evaluateCondition(condition: String, values: Array<String>, column_indices: Map<String, UInt64>, column_types: ArrayList<String>) : Bool 
