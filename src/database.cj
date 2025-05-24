@@ -260,7 +260,7 @@ class Database {
         if (File.exists(data_file_path)) {
             let data_file = File(data_file_path, CreateOrTruncate(true))
             data_file.close()
-            println("Data file for table ${table_name} has been cleared.")
+            // println("Data file for table ${table_name} has been cleared.")
         }
         
         // 更新元数据文件，将行数重置为0
@@ -268,7 +268,7 @@ class Database {
         meta_file.write(tm.serialize().toJson().toString().toArray())
         meta_file.close()
         
-        println("All records in table ${table_name} have been deleted.")
+        // println("All records in table ${table_name} have been deleted.")
     }
 
     public func delete(table_name: String, condition: String) : Bool
