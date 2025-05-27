@@ -15,52 +15,44 @@ class Database {
     private var table_name: ArrayList<String>
 
     // use命令
-    public init(database_name: String, database_path_parent!: String = root_dir)
-    {       
+    public init(database_name: String, database_path_parent!: String = root_dir) {       
         this.database_name = database_name
         this.path = Path(database_path_parent + database_name)
 
-        if (File.exists(this.path.join("database.meta")))
-        {
+        if (File.exists(this.path.join("database.meta"))) {
             let database_meta = File(this.path.join("database.meta"), Open(true, false))
 
             let jsonString = String.fromUtf8(database_meta.readToEnd())
 
             let r = DatabaseMeta.deserialize(DataModel.fromJson(JsonValue.fromStr(jsonString)))
 
-            if (r.MagicName == "CJDB")
-            {
+            if (r.MagicName == "CJDB") {
                 this.table_count = UInt64.parse(r.TableCount.toString())
                 this.table_name = ArrayList<String>(r.TableName)
                 database_meta.close()
             }
-            else
-            {
+            else {
                 this.table_count = 0
                 this.table_name = ArrayList<String>()
                 database_meta.close()
                 throw Exception("Database Metadata is invalid.")
             }
         }
-        else
-        {
+        else {
             throw Exception("Database ${this.database_name} doesn't exist.")
         }
     }
 
     // 创建数据库
-    public static func create_database(database_name: String, root_path!: String = root_dir) : Bool
-    {
+    public static func create_database(database_name: String, root_path!: String = root_dir) : Bool {
         // 根文件夹位置
         let path = Path(root_path + database_name)
 
         // 创建根文件夹
-        try 
-        {
+        try {
             Directory.create(path)
         }
-        catch (e: FSException) 
-        {
+        catch (e: FSException) {
             println("Failed to create Database ${database_name} root folder.")
             return false
         }
@@ -76,23 +68,19 @@ class Database {
     }
 
     // 删除数据库
-    public static func drop_database(database_name: String, root_path!: String = root_dir) : Bool
-    {
-        if (Directory.exists(Path(root_path + database_name)))
-        {
+    public static func drop_database(database_name: String, root_path!: String = root_dir) : Bool {
+        if (Directory.exists(Path(root_path + database_name))) {
             Directory.delete(Path(root_path + database_name), recursive: true)
             return true
         }
-        else
-        {
+        else {
             throw Exception("Database ${database_name} does not exist.")
             return false
         }
     }
 
     // 创建表
-    public func create_table(table_name: String, column_names: ArrayList<String>, column_types: ArrayList<String>) : Bool
-    {
+    public func create_table(table_name: String, column_names: ArrayList<String>, column_types: ArrayList<String>) : Bool {
         // 检查列名和类型数量是否匹配
         if (column_names.size != column_types.size) {
             throw Exception("Column names and types count mismatch.")
@@ -119,8 +107,7 @@ class Database {
         let table_meta_file = File(table_path.join("table.meta"), CreateOrTruncate(true))
         // 使用meta.cj中的TableMeta类
         let tm = TableMeta(table_name, 0, 0, Array<Array<String>>())
-        for (i in 0..column_names.size)
-        {
+        for (i in 0..column_names.size) {
             tm.append(column_names[i], column_types[i])
         }
         table_meta_file.write(tm.serialize().toJson().toString().toArray())
@@ -195,10 +182,8 @@ class Database {
             Directory.delete(table_path, recursive: true)
             
             // 从表列表中移除
-            for (i in 0..this.table_name.size)
-            {
-                if (this.table_name[i] == table_name)
-                {
+            for (i in 0..this.table_name.size) {
+                if (this.table_name[i] == table_name) {
                     this.table_name.remove(i)
                 }
             }
@@ -228,8 +213,7 @@ class Database {
         }
     }
 
-    public func info_table(table_name: String) 
-    {
+    public func info_table(table_name: String) {
         let tb = Table(table_name,  this.database_name)
         println("Path: ${tb.getPath()}")
         println("Table Name: ${tb.getTableName()}")
@@ -239,14 +223,12 @@ class Database {
         println("Column Types: ${tb.getColumnTypes()}")
     }
 
-    public func insert(table_name: String, keys: ArrayList<String>, values: ArrayList<String>)
-    {
+    public func insert(table_name: String, keys: ArrayList<String>, values: ArrayList<String>) {
         let tb = Table(table_name, this.database_name)
         tb.insert(keys, values)
     }
 
-    public func delete(table_name: String)
-    {
+    public func delete(table_name: String) {
         let json_file = File(Path(root_dir).join(database_name).join(table_name).join("table.meta"), Open(true, true))
         let json_str = String.fromUtf8(json_file.readToEnd().toArray())
         let tm = TableMeta.deserialize(DataModel.fromJson(JsonValue.fromStr(json_str)))
@@ -271,8 +253,7 @@ class Database {
         // println("All records in table ${table_name} have been deleted.")
     }
 
-    public func delete(table_name: String, condition: String) : Bool
-    {
+    public func delete(table_name: String, condition: String) : Bool {
         // 使用提取的方法检查表存在性
         if (!validateTableExists(table_name)) {
             return false
@@ -290,8 +271,7 @@ class Database {
     }
     
     // 格式化值（去除多余引号等）
-    private func formatValue(value: String) : String 
-    {
+    private func formatValue(value: String) : String {
         if (value == "") {
             return ""
         }
@@ -307,8 +287,7 @@ class Database {
     }
 
     // SELECT 查询函数
-    public func select(table_name: String, columns: String, condition: String, order_column: String, order_direction: String) : Bool
-    {
+    public func select(table_name: String, columns: String, condition: String, order_column: String, order_direction: String) : Bool {
         // 使用提取的方法检查表存在性
         if (!validateTableExists(table_name)) {
             return false
@@ -473,8 +452,7 @@ class Database {
     }
 
     // 排序行
-    private func sortRows(rows: ArrayList<ArrayList<String>>, col_index: Int64, is_numeric: Bool, direction: String) 
-    {
+    private func sortRows(rows: ArrayList<ArrayList<String>>, col_index: Int64, is_numeric: Bool, direction: String) {
         // 自定义排序
         for (i in 0..(rows.size - 1)) {
             for (j in 0..(rows.size - i - 2)) {
@@ -526,8 +504,7 @@ class Database {
     }
     
     // 提取的私有方法：检查表是否存在
-    private func validateTableExists(table_name: String) : Bool 
-    {
+    private func validateTableExists(table_name: String) : Bool {
         if (!this.table_name.contains(table_name)) {
             throw Exception("Table ${table_name} does not exist.")
             return false
@@ -536,8 +513,7 @@ class Database {
     }
 
     // 提取的私有方法：解析条件
-    private func parseCondition(condition: String) : (String, String, String) 
-    {
+    private func parseCondition(condition: String) : (String, String, String) {
         var parts = condition.split(" ")
         var op = ""
 
@@ -571,8 +547,7 @@ class Database {
     }  
 
     // 条件评估方法
-    private func evaluateCondition(condition: String, values: Array<String>, column_indices: Map<String, UInt64>, column_types: ArrayList<String>) : Bool 
-    {
+    private func evaluateCondition(condition: String, values: Array<String>, column_indices: Map<String, UInt64>, column_types: ArrayList<String>) : Bool {
         // 使用提取的条件解析方法
         let (col_name, op, comparison_value) = parseCondition(condition)
         
@@ -607,16 +582,13 @@ class Database {
                 let num_current = Float64.parse(trim_for_13(current_value))
                 let num_comparison = Float64.parse(trim_for_13(clean_comparison_value))
                 
-                if (op == "=") 
-                {
+                if (op == "=") {
                     return num_current == num_comparison
                 }
-                else if (op == ">") 
-                {
+                else if (op == ">") {
                     return num_current > num_comparison
                 }
-                else if (op == "<") 
-                {
+                else if (op == "<") {
                     return num_current < num_comparison
                 }
             }
@@ -635,8 +607,7 @@ class Database {
     }
 
     // 字符串比较
-    private func compareStrings(str1: String, op: String, str2: String) : Bool 
-    {
+    private func compareStrings(str1: String, op: String, str2: String) : Bool {
         var s1 = str1
         var s2 = str2
         
@@ -649,16 +620,13 @@ class Database {
             s2 = substring(s2, 1, end_index: s2.size - 1)
         }
         
-        if (op == "=") 
-        {
+        if (op == "=") {
             return s1 == s2
         }
-        else if (op == ">") 
-        {
+        else if (op == ">") {
             return s1 > s2
         }
-        else if (op == "<") 
-        {
+        else if (op == "<") {
             return s1 < s2
         }
         return false

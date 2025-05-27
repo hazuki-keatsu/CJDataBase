@@ -6,8 +6,6 @@ English | [中文](./docs/README_zh.md)
 
 This is a database demo composed with Cangjie, the brand-new language.
 
-Due to the little time, I decide not to realize the index file used for quick search.
-
 ## TODO
 
 - [x] `CREATE_DATABASE`
@@ -22,10 +20,28 @@ Due to the little time, I decide not to realize the index file used for quick se
 - [x] `DELETE_FROM`
 - [x] `SELECT`
 - [x] `HELP`
-- [ ] `Concurrent`
-- [ ] `CommandLine Argument`
-- [ ] `Native Logical Delete`
-- [ ] `Segmented storage`
+- [x] `Root Directory Config`
+
+## How to Use
+
+1. Run program: `cjpm run`
+2. Run `.help` for Manual and you will get the output below
+
+```Help Manual
+Available commands:
+  1> create database <name>                   - Create a new database
+  2> drop database <name>                     - Delete a database
+  3> use <name>                               - Switch to database
+  4> create table <name> (<col_type1> <col_name1>, <col_type2> <col_name2>, … )
+                                              - Create a new table
+  5> drop table <name>                        - Delete a table
+  6> info table <name>                        - Show table information
+  7> insert into <table> set <col_name1>=<col_value1>, <col_name2>=<col_value2>, …
+                                              - Insert data into table
+  8> delete from <table> [where condition]    - Delete data from table
+  9> select <col_name1>, <col_name2>, … from <table> [where condition] [order by col_name] [asc/desc]   
+                                              - Query data from table
+```
 
 ## Structure of Database
 
@@ -35,12 +51,7 @@ name_database
 |--name_table
 |  |--table.meta
 |  |--page.data
-|  |--index
-|  |  |--column_0.index
-|  |  |--column_1.index
-|  |  |--column_2.index
-|  !
-!
+!  !
 ```
 
 ### database.meta(.json)
@@ -63,14 +74,7 @@ name_database
 
 ### page.data(.csv)
 
-| Index | Column_0 | Column_1 | ... |
-| ----- | -------- | -------- | --- |
-| UInt   | T        | T        | ... |
-| ... | ... | ... | ... |
-
-### column.index(.json)(Unrealized)
-
-| Key | Value |
-| --- | ----- |
-| Index | Unit |
-| Data | Map<Value, Index_Row> |
+| Column_0 | Column_1 | ... |
+| -------- | -------- | --- |
+| T        | T        | ... |
+| ... | ... | ... |

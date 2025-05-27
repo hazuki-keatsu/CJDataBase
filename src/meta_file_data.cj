@@ -32,13 +32,11 @@ class DatabaseMeta <: Serializable<DatabaseMeta> {
         )
     }
 
-    public func append(tableName: String)
-    {
+    public func append(tableName: String) {
         let newSize = this.TableName.size + 1
         let newTableNames = Array<String>(newSize, item: "")
         
-        for (i in 0..this.TableName.size)
-        {
+        for (i in 0..this.TableName.size) {
             newTableNames[i] = this.TableName[i]
         }
         
@@ -49,22 +47,18 @@ class DatabaseMeta <: Serializable<DatabaseMeta> {
         this.TableCount++
     }
 
-    public func remove(tableName: String) : Bool
-    {
+    public func remove(tableName: String) : Bool {
         // 寻找要删除的表名的索引
         var indexToRemove = -1
-        for (i in 0..this.TableName.size)
-        {
-            if (this.TableName[i] == tableName)
-            {
+        for (i in 0..this.TableName.size) {
+            if (this.TableName[i] == tableName) {
                 indexToRemove = i
                 break
             }
         }
         
         // 如果没找到，返回false
-        if (indexToRemove == -1)
-        {
+        if (indexToRemove == -1) {
             return false
         }
         
@@ -74,10 +68,8 @@ class DatabaseMeta <: Serializable<DatabaseMeta> {
         
         // 复制除了要删除的元素之外的所有元素
         var newIndex = 0
-        for (i in 0..this.TableName.size)
-        {
-            if (i != indexToRemove)
-            {
+        for (i in 0..this.TableName.size) {
+            if (i != indexToRemove) {
                 newTableNames[newIndex] = this.TableName[i]
                 newIndex++
             }
@@ -127,8 +119,7 @@ public class TableMeta <: Serializable<TableMeta> {
         let newTableColumnInfo = Array<Array<String>>(newSize, item: Array<String>())
         
         // 复制现有列信息
-        for (i in 0..this.TableColumnInfo.size)
-        {
+        for (i in 0..this.TableColumnInfo.size) {
             newTableColumnInfo[i] = this.TableColumnInfo[i]
         }
         
@@ -147,22 +138,18 @@ public class TableMeta <: Serializable<TableMeta> {
         this.ColumnCount++
     }
 
-    public func remove(columnName: String) : Bool
-    {
+    public func remove(columnName: String) : Bool {
         // 寻找要删除的列名的索引
         var indexToRemove = -1
-        for (i in 0..this.TableColumnInfo.size)
-        {
-            if (this.TableColumnInfo[i].size > 0 && this.TableColumnInfo[i][0] == columnName)
-            {
+        for (i in 0..this.TableColumnInfo.size) {
+            if (this.TableColumnInfo[i].size > 0 && this.TableColumnInfo[i][0] == columnName) {
                 indexToRemove = i
                 break
             }
         }
         
         // 如果没找到，返回false
-        if (indexToRemove == -1)
-        {
+        if (indexToRemove == -1) {
             return false
         }
         
@@ -172,10 +159,8 @@ public class TableMeta <: Serializable<TableMeta> {
         
         // 复制除了要删除的元素之外的所有元素
         var newIndex = 0
-        for (i in 0..this.TableColumnInfo.size)
-        {
-            if (i != indexToRemove)
-            {
+        for (i in 0..this.TableColumnInfo.size) {
+            if (i != indexToRemove) {
                 newTableColumnInfo[newIndex] = this.TableColumnInfo[i]
                 newIndex++
             }
@@ -234,13 +219,3 @@ public class Data_file <: Serializable<Data_file> {
         )
     }
 }
-
-// func parse() {
-//     let jv = JsonValue.fromStr("""
-//         {"MagicName":"CJDB","DatabaseName":"db","TableCount":1,"TableName":["user"]}
-//     """)
-//     let dm = DataModel.fromJson(jv)
-//     let r = DatabaseMeta.deserialize(dm)
-//     let newDm = r.serialize()
-//     println(newDm.toJson().toJsonString())
-// }

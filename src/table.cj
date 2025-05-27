@@ -8,8 +8,7 @@ import encoding.json.*
 import serialization.serialization.*
 
 // 数据表
-class Table
-{
+class Table {
     private let path: Path
     private let table_name: String
     private var row_count: UInt64
@@ -18,28 +17,24 @@ class Table
     private var column_types: ArrayList<String>
     
     // 初始化表，自动读取元数据
-    public init(table_name: String, database_name: String, database_path!: Path = Path("./")) 
-    {
+    public init(table_name: String, database_name: String, database_path!: Path = Path("./")) {
         this.path = database_path.join(database_name).join(table_name)
         this.table_name = table_name
         this.column_names = ArrayList<String>()
         this.column_types = ArrayList<String>()
         
         // 检查表目录是否存在
-        if (!Directory.exists(this.path)) 
-        {
+        if (!Directory.exists(this.path)) {
             throw Exception("Table directory ${table_name} does not exist.")
         }
         
         // 读取表元数据
         let meta_file_path = this.path.join("table.meta")
-        if (!File.exists(meta_file_path)) 
-        {
+        if (!File.exists(meta_file_path)) {
             throw Exception("Table metadata for ${table_name} does not exist.")
         }
         
-        try 
-        {
+        try {
             let table_meta_file = File(meta_file_path, Open(true, false))
             let jsonString = String.fromUtf8(table_meta_file.readToEnd())
             
@@ -48,15 +43,13 @@ class Table
             let dm = DataModel.fromJson(jv)
             let tableMeta = TableMeta.deserialize(dm)
             
-            if (tableMeta.TableName == this.table_name) 
-            {
+            if (tableMeta.TableName == this.table_name) {
                 this.row_count = tableMeta.RowCount
                 this.column_count = tableMeta.ColumnCount
                 
                 // 从TableColumnInfo中提取列名和类型
                 let columnInfo = tableMeta.TableColumnInfo
-                for (i in 0..columnInfo.size) 
-                {
+                for (i in 0..columnInfo.size) {
                     if (columnInfo[i].size >= 2) 
                     {
                         this.column_names.append(columnInfo[i][0])
@@ -66,27 +59,23 @@ class Table
                 
                 table_meta_file.close()
             } 
-            else 
-            {
+            else {
                 this.row_count = 0
                 this.column_count = 0
                 table_meta_file.close()
                 throw Exception("Table Metadata is invalid.")
             }
         } 
-        catch (e: FSException) 
-        {
+        catch (e: FSException) {
             throw Exception("Failed to read table metadata: ${e}")
         }
-        catch (e: Exception)
-        {
+        catch (e: Exception) {
             throw Exception("Failed to parse table metadata: ${e}")
         }
     }   
     
     // 插入数据
-    public func insert(keys: ArrayList<String>, values: ArrayList<String>) : Bool
-    {
+    public func insert(keys: ArrayList<String>, values: ArrayList<String>) : Bool {
         // 检查键和值的数量是否匹配
         if (keys.size != values.size) {
             throw Exception("Keys and values count mismatch.")
@@ -146,8 +135,7 @@ class Table
             let dataFile = File(this.path.join("page.data"), Append)
             
             var csvLine:String = ""
-            for (i in rowData)
-            {
+            for (i in rowData) {
                 csvLine += i + ","
             }
 
@@ -190,8 +178,7 @@ class Table
     }
 
     // 按条件删除记录
-    public func delete(column_name: String, operator_name: String, value: String) : UInt64
-    {
+    public func delete(column_name: String, operator_name: String, value: String) : UInt64 {
         // 检查列是否存在
         var column_index = -1
         for (i in 0..this.column_names.size) {
@@ -385,38 +372,32 @@ class Table
     }
 
     // 获取表行数
-    public func getRowCount() : UInt64 
-    {
+    public func getRowCount() : UInt64 {
         return this.row_count
     }
     
     // 获取表列数
-    public func getColumnCount() : UInt64 
-    {
+    public func getColumnCount() : UInt64 {
         return this.column_count
     }
     
     // 获取列名列表
-    public func getColumnNames() : ArrayList<String> 
-    {
+    public func getColumnNames() : ArrayList<String> {
         return this.column_names
     }
     
     // 获取列类型列表
-    public func getColumnTypes() : ArrayList<String> 
-    {
+    public func getColumnTypes() : ArrayList<String> {
         return this.column_types
     }
     
     // 获取表路径
-    public func getPath() : Path 
-    {
+    public func getPath() : Path {
         return this.path
     }
     
     // 获取表名
-    public func getTableName() : String 
-    {
+    public func getTableName() : String {
         return this.table_name
     }
 }
