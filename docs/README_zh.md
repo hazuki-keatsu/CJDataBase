@@ -1,4 +1,4 @@
-# CJDataBase系统
+# 仓颉数据库Demo
 
 [English](../README.md) | 中文
 
