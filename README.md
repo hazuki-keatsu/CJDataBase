@@ -1,4 +1,4 @@
-# CJDataBaseSystem
+# CangjieDatabaseDemo
 
 English | [中文](./docs/README_zh.md)
 
